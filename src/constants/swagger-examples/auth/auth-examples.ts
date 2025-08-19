@@ -1,0 +1,4 @@
+export const refreshTokensExample = {
+  newAccessToken:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImJjODA3ODQ1LTA4YTgtNDIzZS05OTc2LTRmNjBkZjE4M2FlMiIsImlhdCI6MTczNDY5ODQxMSwiZXhwIjoxNzM0NzAwMjExfQ.uD91NZRU5gd4wpxaMeQPGq56268DIbM_1MEzJJaxK1Q',
+};

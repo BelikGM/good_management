@@ -1,0 +1,80 @@
+version: '3.5'
+
+services:
+  db:
+    image: postgres:16
+    restart: always
+    env_file:
+      - .env
+    container_name: postgres
+    depends_on:
+      - redis
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - '${DATABASE_PORT}:5432'
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: good-management
+    env_file:
+      - .env
+    ports:
+      - '5000:5000'
+    depends_on:
+      - db
+      - rabbitmq
+      - redis
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    user: "0:0"  
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: nest-pgadmin4
+    env_file:
+      - .env
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_LOGIN}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+    ports:
+      - '5050:80'
+    depends_on:
+      - db
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./rabbit_data:/var/lib/rabbitmq
+    restart: always
+    ports:
+      - '5672:5672' # AMQP порт
+      - '15672:15672' # Порт для управления через веб-интерфейс
+
+  redis:
+    container_name: cache
+    image: redis
+    volumes:
+      - ./redis_data:/var/lib/redis
+      - ./src/config/redis.conf:/usr/local/etc/redis/redis.conf  # Конфигурационный файл
+      - ./src/config/users.acl:/var/lib/redis/users.acl  # Файл с ACL пользователей
+    env_file:
+      - .env
+    ports:
+      - 6379:6379
+    command: redis-server /usr/local/etc/redis/redis.conf  # Запуск Redis с конфигурационным файлом
+
+  nginx-exporter:
+    build: ./nginx-exporter
+    volumes:
+      - /var/log/nginx/gm.log:/var/log/nginx/gm.log:ro
+    ports:
+    - "4040:4040"  # Порт на котором работает nginx-exporter

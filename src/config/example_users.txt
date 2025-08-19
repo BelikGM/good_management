@@ -1,0 +1,5 @@
+// Config for creation redis user with password
+ 
+user [USER_NAME] on >[USER_PASSWORD] +@all -@dangerous +info +keys +acl|list +acl|getuser ~*
+
+user default off
