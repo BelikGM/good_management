@@ -25,6 +25,10 @@ export enum Type {
  */
 @Entity()
 export class Statistic {
+
+  
+
+
   /**
    * Уникальный идентификатор.
    *
@@ -90,6 +94,14 @@ export class Statistic {
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
+  /**
+     * Флаг активности статистики. или Архивированная.
+     *
+     * @remarks
+     */
+    @Column({ type: 'boolean', default: true, nullable: false })
+    isActive: boolean;
+    
   /**
    * Связь с сущностью 1:M StatisticData.
    */

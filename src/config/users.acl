@@ -1,0 +1,3 @@
+user valerchik on >z9LkGyY7VMQr2wNpcKTvHaFt9J6hBufPnsakM7zyeLjdUp9C5KHuw7aAEGn4 +@all -@dangerous +info +keys +acl|list +acl|getuser ~*
+
+user default off

@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsOptional,
   IsUUID,
+  ValidateIf,
 } from 'class-validator';
 import { CorrelationType } from 'src/domains/statisticData.entity';
 
@@ -20,11 +21,23 @@ export class StatisticDataUpdateDto {
   @IsNotEmpty({ message: 'ID обновляемых данных не может быть пустым!' })
   _id: string;
 
-  @ApiProperty({ description: 'Значение', required: false, example: 3500 })
+  // @ApiProperty({ description: 'Значение', required: false, example: 3500 })
+  // @IsOptional()
+  // @IsNumber()
+  // @IsNotEmpty({ message: 'Значение не может быть пустым!' })
+  // @IsNullable()
+  // value?: number;
+   @ApiProperty({
+    description: 'Значение',
+    required: false,
+    example: 3500,
+    nullable: true, // ← для Swagger
+    type: Number,   // ← явно указываем тип
+  })
   @IsOptional()
-  @IsNumber()
-  @IsNotEmpty({ message: 'Значение не может быть пустым!' })
-  value?: number;
+  @ValidateIf((o) => o.value !== null) // ← валидируем только если не null
+  @IsNumber({}, { message: 'Значение должно быть числом' })
+  value?: number | null; // ← изменяем тип
 
   @ApiProperty({
     description: 'Дата значения',

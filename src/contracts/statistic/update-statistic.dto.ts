@@ -6,6 +6,7 @@ import { StatisticDataCreateDto } from '../statisticData/create-statisticData.dt
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -16,6 +17,8 @@ import {
 import { StatisticDataUpdateDto } from '../statisticData/update-statisticData.dto';
 
 export class StatisticUpdateDto {
+
+
   @ApiProperty({
     description: 'Id обновляемой статистики',
     required: true,
@@ -109,4 +112,16 @@ export class StatisticUpdateDto {
   @Type(() => StatisticDataUpdateDto)
   @ArrayNotEmpty({ message: 'Добавьте хотя бы одно значение для статистики!' })
   statisticDataUpdateDtos?: StatisticDataUpdateDto[];
+
+    @ApiProperty({
+    description: 'Флаг активности статистики. Если true - статистика активна, если false - архивирована',
+    required: false,
+    example: false,
+    type: Boolean,
+  })
+  
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
 }

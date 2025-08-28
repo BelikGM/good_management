@@ -339,6 +339,9 @@ export class StatisticDataService {
       .createQueryBuilder('statisticData')
       .where('DATE(statisticData.valueDate) = DATE(:valueDate)', {
         valueDate: statisticDataCreateDto.valueDate
+      })
+      .andWhere('statisticData.statistic = :statisticId', {
+        statisticId: statisticDataCreateDto.statistic.id,
       });
 
     // Особое сравнение для NULL

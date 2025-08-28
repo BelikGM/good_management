@@ -94,9 +94,16 @@ export class StatisticController {
     description: 'Флаг для отправки доп. данных (точек)',
     example: true,
   })
+  @ApiQuery({
+  name: 'isActive',
+  required: false,
+  description: 'Флаг фильтрации по активным статистикам',
+  example: true,
+})
   async findAll(
     @Query('statisticData') statisticData: boolean,
     @Param('organizationId') organizationId: string,
+    @Query('isActive') isActive?: boolean,
   ): Promise<StatisticReadDto[]> {
     let relations: string[];
     if (statisticData) {
@@ -107,6 +114,7 @@ export class StatisticController {
     return await this.statisticService.findAllForOrganization(
       organizationId,
       relations,
+      isActive,
     );
   }
 
@@ -482,8 +490,9 @@ export class StatisticController {
     @Param('controlPanelId') controlPanelId: string,
     @Query('pagination') pagination: number,
     @Query('datePoint') datePoint: string,
+    @Query('isActive') isActive?: boolean,
   ): Promise<any[]> {
-    const statistics = await this.statisticService.findAllForControlPanel(controlPanelId, pagination, datePoint);
+    const statistics = await this.statisticService.findAllForControlPanel(controlPanelId, pagination, datePoint, isActive);
     return statistics;
   }
 

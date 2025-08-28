@@ -37,8 +37,8 @@ export class StatisticData {
    * @remarks
    * nullable: false.
    */
-  @Column({ type: 'decimal', nullable: false })
-  value: number;
+  @Column({ type: 'decimal', nullable: true })
+  value: number | null;
 
   /**
    * Дата точки.

@@ -6,15 +6,28 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import { Statistic } from 'src/domains/statistic.entity';
 import { CorrelationType } from 'src/domains/statisticData.entity';
 
 export class StatisticDataCreateDto {
-  @ApiProperty({ description: 'Значение', required: true, example: 3500 })
-  @IsNumber()
-  @IsNotEmpty({ message: 'Значение не может быть пустым!' })
-  value: number;
+  // @ApiProperty({ description: 'Значение', required: true, example: 3500 })
+  // @IsNumber()
+  // @IsNotEmpty({ message: 'Значение не может быть пустым!' })
+  // value: number;
+  @ApiProperty({
+      description: 'Значение',
+      required: false, // ← меняем на false
+      example: 3500,
+      nullable: true,  // ← добавляем для Swagger
+      type: Number,    // ← явно указываем тип
+    })
+    @IsOptional()     // ← добавляем IsOptional
+    @ValidateIf((o) => o.value !== null) // ← валидируем только если не null
+    @IsNumber({}, { message: 'Значение должно быть числом' })
+    value?: number | null; // ← меняем тип и делаем optional
+
 
   @ApiProperty({
     description: 'Дата значения',

@@ -6,6 +6,7 @@ import { Type as TypeStatistic } from 'src/domains/statistic.entity';
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -16,6 +17,9 @@ import {
 import { StatisticDataCreateDto } from '../statisticData/create-statisticData.dto';
 
 export class StatisticCreateDto {
+
+ 
+
   @IsOptional()
   @IsUUID()
   @IsNotEmpty({ message: 'ID статистики не может быть пустым!' })
@@ -88,4 +92,17 @@ export class StatisticCreateDto {
   @Type(() => StatisticDataCreateDto)
   @ArrayNotEmpty({ message: 'Добавьте хотя бы одно значение для статистики!' })
   statisticDataCreateDtos?: StatisticDataCreateDto[];
+
+  
+  @ApiProperty({
+    description: 'Флаг активности статистики. Если true - статистика активна, если false - архивирована',
+    required: false,
+    default: true,
+    example: true,
+    type: Boolean, // Явно указываем тип для Swagger
+  })
+  
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

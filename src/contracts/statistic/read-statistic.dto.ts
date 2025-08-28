@@ -15,4 +15,5 @@ export class StatisticReadDto {
   post: Post;
   account: Account;
   panelToStatistics: PanelToStatistic[];
+  isActive: boolean;
 }
