@@ -119,6 +119,7 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+
 # Ваши кастомные правила
 config/local.json
 keys/

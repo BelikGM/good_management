@@ -81,7 +81,7 @@ export class StatisticDataService {
             'EXTRACT(MONTH FROM statistic_data.valueDate) AS month',
             'EXTRACT(YEAR FROM statistic_data.valueDate) AS year',
             'EXTRACT(WEEK FROM statistic_data.valueDate) AS week',
-            'statistic_data.correlationType AS correlationType',
+            'statistic_data.correlationType AS correlationType' ,
             'CAST(SUM(statistic_data.value) AS FLOAT) AS total'
           ])
           .where('statistic_data.statisticId = :statisticId', { statisticId })
@@ -139,7 +139,7 @@ export class StatisticDataService {
           year,
           month,
           total: monthlyPoint ? parseFloat(monthlyPoint.total) : (regularPoint ? parseFloat(regularPoint.total) : 0),
-          correlationType: monthlyPoint ? true : false,
+          correlationType: monthlyPoint ? CorrelationType.MONTH : null,
           id: monthlyPoint ? monthlyPoint.id : null
         });
       }
@@ -253,7 +253,7 @@ export class StatisticDataService {
           total: yearlyPoint
             ? parseFloat(yearlyPoint.total)
             : (regularPoint ? parseFloat(regularPoint.total) : 0),
-          correlationType: yearlyPoint ? true : false,
+          correlationType: yearlyPoint ? CorrelationType.YEAR : null,
           id: yearlyPoint ? yearlyPoint.id : null
         });
       }
@@ -390,7 +390,7 @@ export class StatisticDataService {
           `Данные с ID ${statisticDataUpdateDto._id} не найдены`,
         );
       }
-      if (statisticDataUpdateDto.value != null)
+      //if (statisticDataUpdateDto.value != null)
         statisticData.value = statisticDataUpdateDto.value;
       if (statisticDataUpdateDto.valueDate)
         statisticData.valueDate = statisticDataUpdateDto.valueDate;
