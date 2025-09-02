@@ -331,8 +331,9 @@ private mapPostToDto(post: Post): PostReadDto {
           'latestMessage',
           '"latestMessage"."messageNumber" = (SELECT MAX("m"."messageNumber") FROM "message" "m" WHERE "m"."convertId" = "c"."id")',
         )
-        .where('"post"."id" NOT IN (:...userPostsIds)', { userPostsIds })
-        .andWhere('"post"."organizationId" = :organizationId', { organizationId })
+        .where('"post"."organizationId" = :organizationId', { organizationId })
+        .andWhere('"post"."id" NOT IN (:...userPostsIds)', { userPostsIds })
+        .andWhere('"c"."convertStatus" = true')
         .andWhere(
           new Brackets((qb) => {
             qb.where('"c"."pathOfPosts"[1] IN (:...userPostsIds)', {
@@ -389,7 +390,7 @@ private mapPostToDto(post: Post): PostReadDto {
       );
     }
   }
-
+// +79852300581   	1587439475
   async findAllWithoutConvertForOrganization(
     organizationId: string,
     postsWithConvertsIds: string[],
