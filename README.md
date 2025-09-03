@@ -40,8 +40,8 @@
 
 1. Клонирование репозиторий и установка зависимостей:
 ```bash
-$ git clone https://github.com/valerchikUwU/good-management
-
+//$ git clone https://github.com/valerchikUwU/good-management
+$ git clone https://github.com/BelikGM/good-management.git
 $ npm install
 ```
 
