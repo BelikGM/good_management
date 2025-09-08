@@ -146,11 +146,19 @@ export class ConvertController {
     const start = new Date();
     const user = req.user as ReadUserDto;
     const userPostsIds = user.posts.map((post) => post.id);
+
+    const contactPost = await this.postService.findOneById(contactId, ['user']);
+    const contactUserId = contactPost.user.id;
+    const contactPosts = await this.postService.findAllForUser(contactUserId);
+    const contactPostsIds = contactPosts.map(post => post.id);
+
     const [contact, convertsForContact, copiesForContact] = await Promise.all([
-      this.postService.findOneById(contactId, ['user']),
-      this.convertService.findAllForContact(userPostsIds, contactId),
-      this.convertService.findAllCopiesForContact(userPostsIds, contactId),
-    ]);
+    this.postService.findOneById(contactId, ['user']),
+    // Передаем массив ID всех постов контакта
+    this.convertService.findAllForContact(userPostsIds, contactPostsIds),
+    this.convertService.findAllCopiesForContact(userPostsIds, contactPostsIds),
+  ]);
+
     const c = new Date();
     const end = c.getTime() - start.getTime();
     console.log(`чаты ${end}`);

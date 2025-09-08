@@ -139,7 +139,7 @@ export class ConvertService {
 
   async findAllForContact(
     userPostsIds: string[],
-    contactId: string
+    contactPostsIds: string[]
   ): Promise<any[]> {
     try {
       const converts = await this.convertRepository
@@ -168,15 +168,14 @@ export class ConvertService {
             qb.where('"convert"."pathOfPosts"[1] IN (:...userPostsIds)', {
               userPostsIds,
             })
-              .andWhere(
-                '"convert"."pathOfPosts"[array_length("convert"."pathOfPosts", 1)] = :contactId',
-                { contactId },
-              )
+              .andWhere('"convert"."pathOfPosts"[array_length("convert"."pathOfPosts", 1)] IN (:...contactPostsIds)', {
+              contactPostsIds,
+            })
               .orWhere(
                 new Brackets((qb) => {
-                  qb.where('"convert"."pathOfPosts"[1] = :contactId', {
-                    contactId,
-                  }).andWhere(
+                 qb.where('"convert"."pathOfPosts"[1] IN (:...contactPostsIds)', {
+                  contactPostsIds,
+                }).andWhere(
                     '"convert"."activePostId" IN (:...userPostsIds)',
                     { userPostsIds },
                   );
@@ -208,7 +207,7 @@ export class ConvertService {
 
   async findAllCopiesForContact(
     userPostsIds: string[],
-    contactId: string,
+    contactPostsIds: string[],
   ): Promise<any[]> {
     try {
       const converts = await this.convertRepository
@@ -218,7 +217,7 @@ export class ConvertService {
         .leftJoinAndSelect('convert.watchersToConvert', 'wtc')
         .leftJoin('wtc.post', 'watcher')
         .where('watcher.id IN (:...userPostsIds)', { userPostsIds })
-        .andWhere('"convert"."pathOfPosts"[1] = :contactId', { contactId })
+        .andWhere('"convert"."pathOfPosts"[1] IN (:...contactPostsIds)', { contactPostsIds })
         .andWhere('wtc.unreadMessagesCount > 0')
         .orderBy('convert.dateStart', 'ASC')
         .getMany();
