@@ -390,7 +390,7 @@ private mapPostToDto(post: Post): PostReadDto {
       );
     }
   }
-// +79852300581   	1587439475
+
   async findAllWithoutConvertForOrganization(
     organizationId: string,
     postsWithConvertsIds: string[],

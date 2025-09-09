@@ -31,85 +31,146 @@ export class ConvertService {
     @Inject('winston') private readonly logger: Logger,
   ) { }
 
+  // async findAllArchiveForContact(
+  //   userPostsIds: string[],
+  //   contactPostsIds: string[], // Изменяем на массив
+  //   pagination
+  // ): Promise<any[]> {
+  //   try {
+  //     const converts = await this.convertRepository
+  //       .createQueryBuilder('convert')
+  //       .innerJoin('convert.convertToPosts', 'convertToPost')
+  //       .innerJoin('convertToPost.post', 'post')
+  //       .leftJoin(
+  //         'convert.messages',
+  //         'latestMessage',
+  //         '"latestMessage"."messageNumber" = (SELECT MAX("m"."messageNumber") FROM "message" "m" WHERE "m"."convertId" = "convert"."id")',
+  //       )
+  //       .where('post.id IN (:...userPostsIds)', { userPostsIds })
+  //       .andWhere('convert.convertStatus = false')
+  //       .andWhere(
+  //         new Brackets((qb) => {
+  //           qb.where('"convert"."pathOfPosts"[1] IN (:...userPostsIds)', {
+  //             userPostsIds,
+  //           })
+  //             .andWhere('"convert"."pathOfPosts"[array_length("convert"."pathOfPosts", 1)] IN (:...contactPostsIds)', {
+  //             contactPostsIds,
+  //           })
+  //             .orWhere(
+  //               new Brackets((qb) => {
+  //                 qb.where('"convert"."pathOfPosts"[1] IN (:...contactPostsIds)', {
+  //                 contactPostsIds,
+  //               }).andWhere(
+  //                   '"convert"."activePostId" NOT IN (:...userPostsIds)',
+  //                   { userPostsIds },
+  //                 );
+  //               }),
+  //             );
+  //         }),
+  //       )
+  //       .orWhere(
+  //         new Brackets((qb) => {
+  //           qb.where('convert.convertStatus = true')
+  //             // Заменяем на проверку в массиве
+  //             .andWhere('"convert"."pathOfPosts"[1] IN (:...contactPostsIds)', {
+  //               contactPostsIds,
+  //             })
+  //             .andWhere('"convert"."activePostId" NOT IN (:...userPostsIds)', {
+  //               userPostsIds,
+  //             })
+  //             .andWhere(
+  //               '"convert"."pathOfPosts" && ARRAY[:...userPostsIds]::uuid[]',
+  //               { userPostsIds },
+  //             );
+  //         }),
+  //       )
+  //       .select([
+  //         'convert.*',
+  //         '"latestMessage"."content" AS "latestMessageContent"',
+  //         '"latestMessage"."createdAt" AS "latestMessageCreatedAt"',
+  //       ])
+  //       .groupBy(
+  //         'convert.id , "latestMessage"."content", "latestMessage"."createdAt"',
+  //       )
+  //       .orderBy('convert.dateFinish', 'DESC')
+  //       .take(20)
+  //       .skip(pagination)
+  //       .getRawMany();
+  //     return converts;
+  //   } catch (err) {
+  //     this.logger.error(err);
+  //     if (err instanceof NotFoundException) {
+  //       throw err;
+  //     }
+
+  //     throw new InternalServerErrorException('Ошибка при получении конверта');
+  //   }
+  // }
   async findAllArchiveForContact(
-    userPostsIds: string[],
-    contactId: string,
-    pagination
-  ): Promise<any[]> {
-    try {
-      const converts = await this.convertRepository
-        .createQueryBuilder('convert')
-        .innerJoin('convert.convertToPosts', 'convertToPost')
-        .innerJoin('convertToPost.post', 'post')
-        .leftJoin(
-          'convert.messages',
-          'latestMessage',
-          '"latestMessage"."messageNumber" = (SELECT MAX("m"."messageNumber") FROM "message" "m" WHERE "m"."convertId" = "convert"."id")',
-        )
-        .where('post.id IN (:...userPostsIds)', { userPostsIds })
-        .andWhere('convert.convertStatus = false')
-        .andWhere(
-          new Brackets((qb) => {
-            qb.where('"convert"."pathOfPosts"[1] IN (:...userPostsIds)', {
-              userPostsIds,
-            })
-              .andWhere(
-                '"convert"."pathOfPosts"[array_length("convert"."pathOfPosts", 1)] = :contactId',
-                { contactId },
-              )
-              .orWhere(
-                new Brackets((qb) => {
-                  qb.where('"convert"."pathOfPosts"[1] = :contactId', {
-                    contactId,
-                  }).andWhere(
-                    '"convert"."activePostId" NOT IN (:...userPostsIds)',
-                    { userPostsIds },
-                  );
-                }),
-              );
-          }),
-        )
-        .orWhere(
-          new Brackets((qb) => {
-            qb.where('convert.convertStatus = true')
-              .andWhere('"convert"."pathOfPosts"[1] = :contactId', {
-                contactId,
-              })
-              .andWhere('"convert"."activePostId" NOT IN (:...userPostsIds)', {
+  userPostsIds: string[],
+  contactPostsIds: string[],
+  pagination
+): Promise<any[]> {
+  try {
+    const converts = await this.convertRepository
+      .createQueryBuilder('convert')
+      .innerJoin('convert.convertToPosts', 'convertToPost')
+      .innerJoin('convertToPost.post', 'post')
+      .leftJoin(
+        'convert.messages',
+        'latestMessage',
+        '"latestMessage"."messageNumber" = (SELECT MAX("m"."messageNumber") FROM "message" "m" WHERE "m"."convertId" = "convert"."id")',
+      )
+      .where('convert.convertStatus = false') // Только архивные
+      .andWhere(
+        new Brackets((qb) => {
+          // Конверты, где пользователь был инициатором, а контакт - получателем
+          qb.where(
+            new Brackets((subQb) => {
+              subQb.where('"convert"."pathOfPosts"[1] IN (:...userPostsIds)', {
                 userPostsIds,
-              })
-              .andWhere(
+              }).andWhere(
+                '"convert"."pathOfPosts"[array_length("convert"."pathOfPosts", 1)] IN (:...contactPostsIds)',
+                { contactPostsIds },
+              );
+            }),
+          )
+          // ИЛИ конверты, где контакт был инициатором, а пользователь - в цепочке
+          .orWhere(
+            new Brackets((subQb) => {
+              subQb.where('"convert"."pathOfPosts"[1] IN (:...contactPostsIds)', {
+                contactPostsIds,
+              }).andWhere(
                 '"convert"."pathOfPosts" && ARRAY[:...userPostsIds]::uuid[]',
                 { userPostsIds },
               );
-          }),
-        )
-        .select([
-          'convert.*',
-          '"latestMessage"."content" AS "latestMessageContent"',
-          '"latestMessage"."createdAt" AS "latestMessageCreatedAt"',
-        ])
-        .groupBy(
-          'convert.id , "latestMessage"."content", "latestMessage"."createdAt"',
-        )
-        .orderBy('convert.dateFinish', 'DESC')
-        .take(20)
-        .skip(pagination)
-        .getRawMany();
-      return converts;
-    } catch (err) {
-      this.logger.error(err);
-      if (err instanceof NotFoundException) {
-        throw err;
-      }
-
-      throw new InternalServerErrorException('Ошибка при получении конверта');
-    }
+            }),
+          );
+        }),
+      )
+      .andWhere('post.id IN (:...userPostsIds)', { userPostsIds }) // Убеждаемся, что пользователь участник
+      .select([
+        'convert.*',
+        '"latestMessage"."content" AS "latestMessageContent"',
+        '"latestMessage"."createdAt" AS "latestMessageCreatedAt"',
+      ])
+      .groupBy(
+        'convert.id , "latestMessage"."content", "latestMessage"."createdAt"',
+      )
+      .orderBy('convert.dateFinish', 'DESC')
+      .take(20)
+      .skip(pagination)
+      .getRawMany();
+    return converts;
+  } catch (err) {
+    this.logger.error(err);
+    throw new InternalServerErrorException('Ошибка при получении конверта');
   }
-
+}
+  
   async findAllArchiveCopiesForContact(
     userPostsIds: string[],
-    contactId: string,
+    contactPostsIds: string[], // Изменяем на массив
     pagination: number
   ): Promise<any[]> {
     try {
@@ -120,7 +181,7 @@ export class ConvertService {
         .leftJoinAndSelect('convert.watchersToConvert', 'wtc')
         .leftJoin('wtc.post', 'watcher')
         .where('watcher.id IN (:...userPostsIds)', { userPostsIds })
-        .andWhere('"convert"."pathOfPosts"[1] = :contactId', { contactId })
+        .andWhere('"convert"."pathOfPosts"[1] IN (:...contactPostsIds)', { contactPostsIds })
         .andWhere('wtc.unreadMessagesCount = 0')
         .orderBy('convert.dateFinish', 'DESC')
         .take(20)
