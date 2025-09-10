@@ -47,6 +47,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { MessageSeenStatusModule } from './application/modules/messageSeenStatus.module';
 import { WatchersToConvertModule } from './application/modules/watchersToConvert.module';
 import { TransactionModule } from 'nestjs-transaction';
+import { PermissionsModule } from './application/modules/permissions.module';
 
 dotenv.config();
 
@@ -125,6 +126,7 @@ dotenv.config();
     AttachmentToMessageModule,
     MessageSeenStatusModule,
     WatchersToConvertModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

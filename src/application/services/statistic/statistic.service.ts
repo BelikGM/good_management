@@ -197,7 +197,8 @@ export class StatisticService {
   controlPanelId: string,
   pagination: number,
   datePoint: string,
-  isActive?: boolean, // новый параметр
+  isActive?: boolean,
+  withStatisticData?: boolean, // <-- переименовали
 ): Promise<any[]> {
   try {
     const queryBuilder = this.statisticRepository
@@ -205,20 +206,25 @@ export class StatisticService {
       .leftJoinAndSelect('statistic.panelToStatistics', 'p_t_s')
       .where('p_t_s.controlPanelId = :controlPanelId', { controlPanelId });
     
-    // Добавляем фильтр по isActive если передан
     if (isActive !== undefined) {
       queryBuilder.andWhere('statistic.isActive = :isActive', { isActive });
     }
-    
+
     queryBuilder.orderBy('p_t_s.orderStatisticNumber', 'ASC');
 
     const statistics = await queryBuilder.getMany();
 
     const statisticsWithData = await Promise.all(
       statistics.map(async (statistic) => {
-        let statisticData: any[] = [];
+        let statisticDataResult: any[] = [];
 
-        statisticData = await this.statisticDataService.findSeveralWeeks(statistic.id, datePoint, 13);
+        if (withStatisticData) {
+          statisticDataResult = await this.statisticDataService.findSeveralWeeks(
+            statistic.id,
+            datePoint,
+            13,
+          );
+        }
 
         return {
           id: statistic.id,
@@ -227,19 +233,21 @@ export class StatisticService {
           description: statistic.description,
           createdAt: statistic.createdAt,
           updatedAt: statistic.updatedAt,
-          statisticDatas: statisticData,
+          statisticDatas: withStatisticData ? statisticDataResult : [], // <-- проверка по новому флагу
           post: statistic.post,
           account: statistic.account,
           panelToStatistics: statistic.panelToStatistics,
-          isActive: statistic.isActive, // добавляем новое поле
+          isActive: statistic.isActive,
         };
-      })
+      }),
     );
 
     return statisticsWithData;
   } catch (err) {
     this.logger.error(err);
-    throw new InternalServerErrorException('Ошибка при получении статистик в панели');
+    throw new InternalServerErrorException(
+      'Ошибка при получении статистик в панели',
+    );
   }
 }
 

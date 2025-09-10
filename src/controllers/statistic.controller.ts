@@ -491,6 +491,7 @@ export class StatisticController {
     @Query('pagination') pagination: number,
     @Query('datePoint') datePoint: string,
     @Query('isActive') isActive?: boolean,
+    @Query('statisticData') statisticData?: boolean,
   ): Promise<any[]> {
     const statistics = await this.statisticService.findAllForControlPanel(controlPanelId, pagination, datePoint, isActive);
     return statistics;
