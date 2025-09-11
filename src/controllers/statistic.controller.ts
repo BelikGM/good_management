@@ -538,8 +538,8 @@ export class StatisticController {
   })
   async findOne(
     @Param('statisticId') statisticId: string,
-    @Query('datePoint') datePoint: string,
-    @Query('viewType') viewType: viewTypes,
+    @Query('datePoint') datePoint?: string,
+    @Query('viewType') viewType?: viewTypes,
   ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }> {
     const statistic = await this.statisticService.findOneById(statisticId, [
       'post',
