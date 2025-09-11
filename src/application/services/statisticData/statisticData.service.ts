@@ -138,7 +138,7 @@ export class StatisticDataService {
         result.push({
           year,
           month,
-          total: monthlyPoint ? parseFloat(monthlyPoint.total) : (regularPoint ? parseFloat(regularPoint.total) : 0),
+          total: monthlyPoint ? parseFloat(monthlyPoint.total) : (regularPoint ? parseFloat(regularPoint.total) : null),
           correlationType: monthlyPoint ? CorrelationType.MONTH : null,
           id: monthlyPoint ? monthlyPoint.id : null
         });
@@ -252,7 +252,7 @@ export class StatisticDataService {
           year,
           total: yearlyPoint
             ? parseFloat(yearlyPoint.total)
-            : (regularPoint ? parseFloat(regularPoint.total) : 0),
+            : (regularPoint ? parseFloat(regularPoint.total) : null),
           correlationType: yearlyPoint ? CorrelationType.YEAR : null,
           id: yearlyPoint ? yearlyPoint.id : null
         });

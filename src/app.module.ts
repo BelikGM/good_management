@@ -48,6 +48,8 @@ import { MessageSeenStatusModule } from './application/modules/messageSeenStatus
 import { WatchersToConvertModule } from './application/modules/watchersToConvert.module';
 import { TransactionModule } from 'nestjs-transaction';
 import { PermissionsModule } from './application/modules/permissions.module';
+import { PermissionService } from './application/services/permissions/permission.service';
+import { PermissionController } from './controllers/permission.controller';
 
 dotenv.config();
 
