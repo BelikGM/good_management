@@ -493,7 +493,7 @@ export class StatisticController {
     @Query('isActive') isActive?: boolean,
     @Query('statisticData') statisticData?: boolean,
   ): Promise<any[]> {
-    const statistics = await this.statisticService.findAllForControlPanel(controlPanelId, pagination, datePoint, isActive);
+    const statistics = await this.statisticService.findAllForControlPanel(controlPanelId, pagination, datePoint, isActive, statisticData);
     return statistics;
   }
 
@@ -573,4 +573,60 @@ export class StatisticController {
     }
     return { statistic, statisticData };
   }
+
+  @Get(':organizationId/all-with-period')
+    @UseGuards(PermissionsGuard)
+    @ModuleAccess(Modules.STATISTIC)
+    @ActionAccess(Actions.READ)
+    @ApiOperation({ summary: 'Получить все статистики организации с данными за период' })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'ОК!',
+    })
+    @ApiResponse({
+      status: HttpStatus.UNAUTHORIZED,
+      description: 'Вы не авторизованы!',
+    })
+    @ApiResponse({
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      description: 'Ошибка сервера!',
+    })
+    @ApiParam({
+      name: 'organizationId',
+      required: true,
+      description: 'Id организации',
+      example: '2d1cea4c-7cea-4811-8cd5-078da7f20167',
+    })
+    @ApiQuery({
+      name: 'weeks',
+      required: true,
+      description: 'Период в неделях (13, 26 или 52)',
+      example: 13,
+      enum: [13, 26, 52]
+    })
+    @ApiQuery({
+      name: 'datePoint',
+      required: true,
+      description: 'Дата от которой будет вестись отчет (YYYY-MM-DD)',
+      example: '2022-10-28',
+    })
+    @ApiQuery({
+      name: 'isActive',
+      required: false,
+      description: 'Флаг фильтрации по активным статистикам',
+      example: true,
+    })
+    async findAllWithPeriod(
+      @Param('organizationId') organizationId: string,
+      @Query('weeks') weeks: number,
+      @Query('datePoint') datePoint: string,
+      @Query('isActive') isActive?: boolean,
+    ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
+      return await this.statisticService.findAllWithPeriod(
+        organizationId,
+        weeks,
+        datePoint,
+        isActive,
+      );
+    }
 }

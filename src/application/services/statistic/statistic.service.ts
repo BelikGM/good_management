@@ -304,4 +304,64 @@ export class StatisticService {
       );
     }
   }
+  
+  async findAllWithPeriod(
+  organizationId: string,
+  weeks: number,
+  datePoint: string,
+  isActive?: boolean,
+  ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
+  try {
+    const where: any = { 
+      post: { organization: { id: organizationId } } 
+    };
+    
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
+
+    // Получаем все статистики организации
+    const statistics = await this.statisticRepository.find({
+      where: where,
+      relations: ['post'],
+    });
+
+    // Для каждой статистики получаем данные за указанный период
+    const statisticsWithData = await Promise.all(
+      statistics.map(async (statistic) => {
+        const statisticData = await this.statisticDataService.findSeveralWeeks(
+          statistic.id,
+          datePoint,
+          weeks,
+        );
+
+        const statisticReadDto: StatisticReadDto = {
+          id: statistic.id,
+          type: statistic.type,
+          name: statistic.name,
+          description: statistic.description,
+          createdAt: statistic.createdAt,
+          updatedAt: statistic.updatedAt,
+          statisticDatas: statistic.statisticDatas,
+          post: statistic.post,
+          account: statistic.account,
+          panelToStatistics: statistic.panelToStatistics,
+          isActive: statistic.isActive,
+        };
+
+        return {
+          statistic: statisticReadDto,
+          statisticData: statisticData,
+        };
+      }),
+    );
+
+    return statisticsWithData;
+  } catch (err) {
+    this.logger.error(err);
+    throw new InternalServerErrorException(
+      'Ошибка при получении статистик с данными за период!',
+    );
+  }
+  }
 }
