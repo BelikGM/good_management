@@ -10,12 +10,14 @@ import { EventsModule } from './events.module';
 import { TargetModule } from './target.module';
 import { MessageModule } from './message.module';
 import { WatchersToConvertModule } from './watchersToConvert.module';
+import { UsersModule } from './users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Convert]),
     ConvertToPostModule,
     PostModule,
+    UsersModule,
     TargetModule,
     WatchersToConvertModule,
     forwardRef(() => MessageModule),

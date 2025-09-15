@@ -26,6 +26,7 @@ import { ConvertReadDto } from 'src/contracts/convert/read-convert.dto';
 import { Logger } from 'winston';
 import { yellow } from 'colorette';
 import { PostService } from 'src/application/services/post/post.service';
+import { UsersService } from 'src/application/services/users/users.service';
 import { ConvertGateway } from 'src/gateways/convert.gateway';
 import { PathConvert, TypeConvert } from 'src/domains/convert.entity';
 import { AccessTokenGuard } from 'src/guards/accessToken.guard';
@@ -51,6 +52,7 @@ export class ConvertController {
   constructor(
     private readonly convertService: ConvertService,
     private readonly postService: PostService,
+    private readonly userService: UsersService,
     private readonly convertGateway: ConvertGateway,
     @Inject('winston') private readonly logger: Logger,
   ) { }
@@ -117,8 +119,8 @@ export class ConvertController {
     };
   }
 
-  @Get(':contactId/converts')
-  @ApiOperation({ summary: 'Все конверты' })
+  @Get(':userId/converts')
+  @ApiOperation({ summary: 'Все конверты для пользователя' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'ОК!',
@@ -133,10 +135,10 @@ export class ConvertController {
     description: 'Ошибка сервера!',
   })
   @ApiParam({
-    name: 'contactId',
+    name: 'userId',
     required: true,
-    description: 'Id контакта (поста)',
-    example: '5fc5ec49-d658-4fe1-b4c9-7dd01d38a652',
+    description: 'Id юзera',
+    example: '4fc5ec49-d658-4fe1-b4c9-7dd01d38a652',
   })
   @ApiQuery({
     name: 'pagination',
@@ -146,7 +148,7 @@ export class ConvertController {
   })
   async findAllForContact(
     @Req() req: ExpressRequest,
-    @Param('contactId') contactId: string,
+    @Param('userId') userId: string,
   ): Promise<{
     contact: PostReadDto;
     convertsForContact: any[];
@@ -156,26 +158,36 @@ export class ConvertController {
     const user = req.user as ReadUserDto;
     const userPostsIds = user.posts.map((post) => post.id);
 
-    const contactPost = await this.postService.findOneById(contactId, ['user']);
-    const contactUserId = contactPost.user.id;
-    const contactPosts = await this.postService.findAllForUser(contactUserId);
-    const contactPostsIds = contactPosts.map(post => post.id);
+    try {
+      // Получаем пользователя и все его посты
+      const contactUser = await this.userService.findOne(userId, ['posts']);
+      const contactPosts = contactUser.posts || [];
+      const contactPostsIds = contactPosts.map(post => post.id);
 
-    const [contact, convertsForContact, copiesForContact] = await Promise.all([
-    this.postService.findOneById(contactId, ['user']),
-    // Передаем массив ID всех постов контакта
-    this.convertService.findAllForContact(userPostsIds, contactPostsIds),
-    this.convertService.findAllCopiesForContact(userPostsIds, contactPostsIds),
-  ]);
+     
 
-    const c = new Date();
-    const end = c.getTime() - start.getTime();
-    console.log(`чаты ${end}`);
-    return {
-      contact: contact,
-      convertsForContact: convertsForContact,
-      copiesForContact: copiesForContact,
-    };
+      const firstContactPost = contactPosts[0]; // ← НУЛЕВОЙ ПОСТ
+
+      const [contact, convertsForContact, copiesForContact] = await Promise.all([
+        this.postService.findOneById(firstContactPost.id, ['user']),
+        this.convertService.findAllForContact(userPostsIds, contactPostsIds),
+        this.convertService.findAllCopiesForContact(userPostsIds, contactPostsIds),
+      ]);
+
+      const c = new Date();
+      const end = c.getTime() - start.getTime();
+      console.log(`чаты ${end}`);
+      
+      return {
+        contact: contact,
+        convertsForContact: convertsForContact,
+        copiesForContact: copiesForContact,
+      };
+
+    } catch (error) {
+      this.logger.error('Error in findAllForContact:', error);
+      throw error;
+    }
   }
 
   @Get(':convertId')
