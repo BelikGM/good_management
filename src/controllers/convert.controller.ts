@@ -57,8 +57,8 @@ export class ConvertController {
     @Inject('winston') private readonly logger: Logger,
   ) { }
 
-  @Get(':contactId/converts/archive')
-  @ApiOperation({ summary: 'Все архивные конверты' })
+  @Get(':userId/converts/archive')
+  @ApiOperation({ summary: 'Все архивные конверты юзера' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'ОК!',
@@ -73,10 +73,10 @@ export class ConvertController {
     description: 'Ошибка сервера!',
   })
   @ApiParam({
-    name: 'contactId',
+    name: 'userId',
     required: true,
-    description: 'Id контакта (поста)',
-    example: '5fc5ec49-d658-4fe1-b4c9-7dd01d38a652',
+    description: 'Id юзера',
+    example: 'd21182c4-7e6e-488c-a418-0dfef5411f41',
   })
   @ApiQuery({
     name: 'pagination',
@@ -85,38 +85,54 @@ export class ConvertController {
     example: 20,
   })
   async findAllArchiveForContact(
-    @Req() req: ExpressRequest,
-    @Param('contactId') contactId: string,
-    @Query('pagination') pagination: number,
-  ): Promise<any> {
+  @Req() req: ExpressRequest,
+  @Param('userId') userId: string,
+  @Query('pagination') pagination: number,
+  ): Promise<{
+    archiveConvertsForContact: any[];
+    archiveCopiesForContact: any[];
+  }> {
     const start = new Date();
     const user = req.user as ReadUserDto;
     const userPostsIds = user.posts.map((post) => post.id);
 
-        // Получаем пользователя контакта и все его посты
-    const contactPost = await this.postService.findOneById(contactId, ['user']);
-    const contactUserId = contactPost.user.id;
-    const contactPosts = await this.postService.findAllForUser(contactUserId);
-    const contactPostsIds = contactPosts.map(post => post.id);
+    try {
+      // Получаем пользователя и все его посты
+      const contactUser = await this.userService.findOne(userId, ['posts']);
+      const contactPosts = contactUser.posts || [];
+      const contactPostsIds = contactPosts.map(post => post.id);
 
-    const [archiveConvertsForContact, archiveCopiesForContact] =
-    await Promise.all([
-      // Передаем массив ID всех постов контакта
-      this.convertService.findAllArchiveForContact(userPostsIds, contactPostsIds, pagination),
-      this.convertService.findAllArchiveCopiesForContact(
-        userPostsIds,
-        contactPostsIds,
-        pagination
-      ),
-    ]);
-    
-    const c = new Date();
-    const end = c.getTime() - start.getTime();
-    console.log(`чаты ${end}`);
-    return {
-      archiveConvertsForContact: archiveConvertsForContact,
-      archiveCopiesForContact: archiveCopiesForContact,
-    };
+      // Если у пользователя нет постов, возвращаем пустые массивы
+      if (contactPosts.length === 0) {
+        return {
+          archiveConvertsForContact: [],
+          archiveCopiesForContact: []
+        };
+      }
+
+      const [archiveConvertsForContact, archiveCopiesForContact] = await Promise.all([
+        // Передаем массив ID всех постов контакта
+        this.convertService.findAllArchiveForContact(userPostsIds, contactPostsIds, pagination),
+        this.convertService.findAllArchiveCopiesForContact(
+          userPostsIds,
+          contactPostsIds,
+          pagination
+        ),
+      ]);
+      
+      const c = new Date();
+      const end = c.getTime() - start.getTime();
+      console.log(`архивные чаты ${end}`);
+      
+      return {
+        archiveConvertsForContact: archiveConvertsForContact,
+        archiveCopiesForContact: archiveCopiesForContact,
+      };
+
+    } catch (error) {
+      this.logger.error('Error in findAllArchiveForContact:', error);
+      throw error;
+    }
   }
 
   @Get(':userId/converts')
@@ -137,8 +153,8 @@ export class ConvertController {
   @ApiParam({
     name: 'userId',
     required: true,
-    description: 'Id юзera',
-    example: '4fc5ec49-d658-4fe1-b4c9-7dd01d38a652',
+    description: 'Id юзeрa',
+    example: 'd21182c4-7e6e-488c-a418-0dfef5411f41',
   })
   @ApiQuery({
     name: 'pagination',
