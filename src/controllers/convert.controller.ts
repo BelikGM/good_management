@@ -43,6 +43,7 @@ import { ApproveConvertGuard } from 'src/guards/approveConvert.guard';
 import { PostReadDto } from 'src/contracts/post/read-post.dto';
 import { ConvertFinishDto } from 'src/contracts/convert/finish-convert.dto';
 import { createPathFromSenderToRecieverPost } from 'src/helpersFunc/createPathFromSenderToRecieverPost';
+import { MessageService } from 'src/application/services/message/message.service';
 
 @ApiTags('Converts')
 @ApiBearerAuth('access-token')
@@ -51,6 +52,7 @@ import { createPathFromSenderToRecieverPost } from 'src/helpersFunc/createPathFr
 export class ConvertController {
   constructor(
     private readonly convertService: ConvertService,
+    private readonly messageService: MessageService,
     private readonly postService: PostService,
     private readonly userService: UsersService,
     private readonly convertGateway: ConvertGateway,
@@ -328,6 +330,12 @@ export class ConvertController {
       this.convertService.create(convertCreateDto),
       this.postService.findOneById(convertCreateDto.pathOfPosts[1], ['user']),
     ]);
+      await this.messageService.create({
+    content: convertCreateDto.convertTheme, // передаем тему как текст сообщения
+    postId: convertCreateDto.senderPostId,
+    convert: createdConvert,
+    sender: userPost, // от кого сообщение
+  });
 
     // Если у поста есть юзер, то прокидывать сокет
     if (activePost.user !== null) {
@@ -348,6 +356,7 @@ export class ConvertController {
     this.logger.info(
       `${yellow('OK!')} - convertCreateDto: ${JSON.stringify(convertCreateDto)} - Создан новый конверт!`,
     );
+
     return { id: createdConvert.id };
   }
 
