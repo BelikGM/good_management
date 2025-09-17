@@ -605,12 +605,6 @@ export class StatisticController {
       enum: [13, 26, 52]
     })
     @ApiQuery({
-      name: 'datePoint',
-      required: true,
-      description: 'Дата от которой будет вестись отчет (YYYY-MM-DD)',
-      example: '2022-10-28',
-    })
-    @ApiQuery({
       name: 'isActive',
       required: false,
       description: 'Флаг фильтрации по активным статистикам',
@@ -619,13 +613,11 @@ export class StatisticController {
     async findAllWithPeriod(
       @Param('organizationId') organizationId: string,
       @Query('weeks') weeks: number,
-      @Query('datePoint') datePoint: string,
       @Query('isActive') isActive?: boolean,
     ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
       return await this.statisticService.findAllWithPeriod(
         organizationId,
         weeks,
-        datePoint,
         isActive,
       );
     }

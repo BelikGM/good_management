@@ -304,11 +304,10 @@ export class StatisticService {
       );
     }
   }
-  
+
   async findAllWithPeriod(
   organizationId: string,
   weeks: number,
-  datePoint: string,
   isActive?: boolean,
   ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
   try {
@@ -325,7 +324,7 @@ export class StatisticService {
       where: where,
       relations: ['post'],
     });
-
+     const datePoint = new Date().toISOString().split('T')[0];
     // Для каждой статистики получаем данные за указанный период
     const statisticsWithData = await Promise.all(
       statistics.map(async (statistic) => {
