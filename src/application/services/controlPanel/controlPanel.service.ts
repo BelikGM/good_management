@@ -141,18 +141,29 @@ export class ControlPanelService {
       }
       if (updateControlPanelDto.panelType)
         controlPanel.panelType = updateControlPanelDto.panelType;
+      // ОЧИЩАЕМ postId ЕСЛИ ПАНЕЛЬ СТАНОВИТСЯ ГЛОБАЛЬНОЙ
+      if (updateControlPanelDto.panelType === PanelType.GLOBAL) {
+        controlPanel.post = null;
+      }
+      // if (updateControlPanelDto.statisticIds) {
+      //   await this.panelToStatisticService.remove(controlPanel);
+      //   await this.panelToStatisticService.createSeveral(
+      //     controlPanel,
+      //     updateControlPanelDto.statisticIds,
+      //   );
+      // }
       if (updateControlPanelDto.statisticIds) {
-        await this.panelToStatisticService.remove(controlPanel);
-        await this.panelToStatisticService.createSeveral(
+        await this.panelToStatisticService.syncPanelToStatistics(
           controlPanel,
           updateControlPanelDto.statisticIds,
         );
       }
-      await this.controlPanelRepository.update(controlPanel.id, {
-        panelName: controlPanel.panelName,
-        panelType: controlPanel.panelType,
-        isNameChanged: controlPanel.isNameChanged,
-      });
+      // await this.controlPanelRepository.update(controlPanel.id, {
+      //   panelName: controlPanel.panelName,
+      //   panelType: controlPanel.panelType,
+      //   isNameChanged: controlPanel.isNameChanged,
+      // });
+       await this.controlPanelRepository.save(controlPanel);
       return controlPanel.id;
     } catch (err) {
       this.logger.error(err);
