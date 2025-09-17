@@ -574,7 +574,7 @@ export class StatisticController {
     return { statistic, statisticData };
   }
 
-  @Get(':organizationId/all-with-period')
+  @Get(':organizationId/allWithPeriod')
     @UseGuards(PermissionsGuard)
     @ModuleAccess(Modules.STATISTIC)
     @ActionAccess(Actions.READ)

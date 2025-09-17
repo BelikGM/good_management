@@ -55,7 +55,6 @@ import { ActionAccess } from 'src/decorators/action-access.decorator';
 import { ModuleAccess } from 'src/decorators/module-access.decorator';
 import { Modules, Actions } from 'src/domains/roleSetting.entity';
 import { PermissionsGuard } from 'src/guards/permission.guard';
-
 @ApiTags('Posts')
 @ApiBearerAuth('access-token')
 @UseGuards(AccessTokenGuard)
@@ -109,7 +108,7 @@ async getMyPostsInOrganization(
   );
 }
 
-  @Get(':organizationId/contacts')
+   @Get(':organizationId/contacts')
   @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POST)
   @ActionAccess(Actions.READ)
@@ -131,7 +130,7 @@ async getMyPostsInOrganization(
     name: 'organizationId',
     required: true,
     description: 'Id организации',
-    example: '2d1cea4c-7cea-4811-8cd5-078da7f20167',
+    example: 'bdb6b98b-d036-4878-bb3d-e4b1271aae89',
   })
   async findAllContacts(
     @Req() req: ExpressRequest,
