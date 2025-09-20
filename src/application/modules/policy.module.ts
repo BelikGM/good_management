@@ -7,6 +7,7 @@ import { PolicyController } from 'src/controllers/policy.controller';
 import { OrganizationModule } from './organization.module';
 import { RoleSettingModule } from './roleSetting.module';
 import { QueueModule } from './queue.module';
+import { PolicyHtmlToMarkdownService } from 'src/application/services/policy/policy-html-to-markdown.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { QueueModule } from './queue.module';
     forwardRef(() => QueueModule),
   ],
   controllers: [PolicyController],
-  providers: [PolicyService, PolicyRepository],
+  providers: [PolicyService, PolicyRepository, PolicyHtmlToMarkdownService],
   exports: [PolicyService],
 })
 export class PolicyModule {}

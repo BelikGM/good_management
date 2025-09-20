@@ -50,6 +50,7 @@ import { TransactionModule } from 'nestjs-transaction';
 import { PermissionsModule } from './application/modules/permissions.module';
 import { PermissionService } from './application/services/permissions/permission.service';
 import { PermissionController } from './controllers/permission.controller';
+import { AdminModule } from './application/modules/admin.module';
 
 dotenv.config();
 
@@ -129,6 +130,7 @@ dotenv.config();
     MessageSeenStatusModule,
     WatchersToConvertModule,
     PermissionsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
