@@ -168,7 +168,7 @@ export class ConvertController {
     @Req() req: ExpressRequest,
     @Param('userId') userId: string,
   ): Promise<{
-    contact: PostReadDto;
+    contact: PostReadDto[];
     convertsForContact: any[];
     copiesForContact: any[];
   }> {
@@ -184,20 +184,24 @@ export class ConvertController {
 
      
 
-      const firstContactPost = contactPosts[0]; // ← НУЛЕВОЙ ПОСТ
+      //const firstContactPost = contactPosts[0]; // ← НУЛЕВОЙ ПОСТ
 
-      const [contact, convertsForContact, copiesForContact] = await Promise.all([
-        this.postService.findOneById(firstContactPost.id, ['user']),
-        this.convertService.findAllForContact(userPostsIds, contactPostsIds),
-        this.convertService.findAllCopiesForContact(userPostsIds, contactPostsIds),
-      ]);
+       const postsPromises = contactPosts.map(post => 
+          this.postService.findOneById(post.id, ['user'])
+        );
+        
+        const [contacts, convertsForContact, copiesForContact] = await Promise.all([
+          Promise.all(postsPromises), // ← Получаем все посты
+          this.convertService.findAllForContact(userPostsIds, contactPostsIds),
+          this.convertService.findAllCopiesForContact(userPostsIds, contactPostsIds),
+        ]);
 
       const c = new Date();
       const end = c.getTime() - start.getTime();
       console.log(`чаты ${end}`);
       
       return {
-        contact: contact,
+        contact: contacts,
         convertsForContact: convertsForContact,
         copiesForContact: copiesForContact,
       };
