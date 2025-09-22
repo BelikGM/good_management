@@ -341,29 +341,26 @@ export class StatisticService {
       const weeksAgo = new Date(reportDayTyped);
       weeksAgo.setDate(weeksAgo.getDate() - ((weeks - 1) * 7));
 
-      // 4. ОДИН запрос к БД для получения ВСЕХ данных для ВСЕХ статистик
-      // Используем QueryBuilder для сложного условия
+      // 4. Запрос с джойном
       const allStatisticData = await this.statisticDataRepository
         .createQueryBuilder('data')
-        .where('data.statisticId IN (:...statisticIds)', { statisticIds }) // Ищем данные для любой из наших статистик
+        .leftJoinAndSelect('data.statistic', 'statistic') // ← ДОБАВИТЬ ДЖОЙН
+        .where('data.statisticId IN (:...statisticIds)', { statisticIds })
         .andWhere('data.valueDate <= :reportDayTyped', { reportDayTyped })
         .andWhere('data.valueDate >= :weeksAgo', { weeksAgo })
         .andWhere('data.correlationType = :type', { type: CorrelationType.WEEK })
         .orderBy('data.valueDate', 'ASC')
         .getMany();
 
-              // 5. Группируем полученные данные по ID статистики.
-        // Получаем объект, где ключ - statisticId, значение - массив его данных
-        const dataGroupedByStatId = {};
-        allStatisticData.forEach(dataItem => {
-          // ВАЖНО: используем dataItem.statisticId, а не dataItem.statistic.id
-          // потому что мы не делали .leftJoinAndSelect('data.statistic', 'statistic')
-          const statId = dataItem.id; // ← ИСПРАВЛЕННАЯ СТРОКА
-          if (!dataGroupedByStatId[statId]) {
-            dataGroupedByStatId[statId] = [];
-          }
-          dataGroupedByStatId[statId].push(dataItem);
-        });
+      // 5. Группируем по statistic.id (теперь statistic доступен)
+      const dataGroupedByStatId = {};
+      allStatisticData.forEach(dataItem => {
+        const statId = dataItem.statistic.id; // ← Теперь работает
+        if (!dataGroupedByStatId[statId]) {
+          dataGroupedByStatId[statId] = [];
+        }
+        dataGroupedByStatId[statId].push(dataItem);
+      });
 
       // 6. Собираем финальный результат, сопоставляя статистики и их данные
       const statisticsWithData = statistics.map(statistic => {
