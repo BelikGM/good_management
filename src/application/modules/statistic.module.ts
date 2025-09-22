@@ -8,7 +8,6 @@ import { StatisticDataModule } from './statisticData.module';
 import { PostModule } from './post.module';
 import { QueueModule } from './queue.module';
 import { RoleSettingModule } from './roleSetting.module';
-
 @Module({
   imports: [
     TypeOrmModule.forFeature([Statistic]),

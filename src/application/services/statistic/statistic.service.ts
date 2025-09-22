@@ -17,13 +17,15 @@ import { In } from 'typeorm';
 import { CorrelationType } from 'src/domains/statisticData.entity';
 import { viewTypes } from 'src/constants/extraTypes/statisticViewTypes';
 import { StatisticDataService } from '../statisticData/statisticData.service';
-
+import { StatisticDataRepository } from '../statisticData/repository/statisticData.repository';
+import { StatisticData } from 'src/domains/statisticData.entity';
 @Injectable()
 export class StatisticService {
   constructor(
     @InjectRepository(Statistic)
     private readonly statisticRepository: StatisticRepository,
     private readonly statisticDataService: StatisticDataService,
+    private readonly statisticDataRepository: StatisticDataRepository,
     @Inject('winston') private readonly logger: Logger,
   ) { }
 
@@ -306,33 +308,68 @@ export class StatisticService {
   }
 
   async findAllWithPeriod(
-  organizationId: string,
-  weeks: number,
-  isActive?: boolean,
+    organizationId: string,
+    weeks: number,
+    isActive?: boolean,
   ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
-  try {
-    const where: any = { 
-      post: { organization: { id: organizationId } } 
-    };
-    
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
+    try {
+      const where: any = {
+        post: { organization: { id: organizationId } }
+      };
 
-    // Получаем все статистики организации
-    const statistics = await this.statisticRepository.find({
-      where: where,
-      relations: ['post'],
-    });
-     const datePoint = new Date().toISOString().split('T')[0];
-    // Для каждой статистики получаем данные за указанный период
-    const statisticsWithData = await Promise.all(
-      statistics.map(async (statistic) => {
-        const statisticData = await this.statisticDataService.findSeveralWeeks(
-          statistic.id,
-          datePoint,
-          weeks,
-        );
+      if (isActive !== undefined) {
+        where.isActive = isActive;
+      }
+
+      // 1. Получаем все статистики организации (как и раньше)
+      const statistics = await this.statisticRepository.find({
+        where: where,
+        relations: ['post'], // Подгружаем пост, это нужно
+      });
+
+      // Если статистик нет, сразу возвращаем пустой массив
+      if (statistics.length === 0) {
+        return [];
+      }
+
+      // 2. Формируем массив ID всех статистик
+      const statisticIds = statistics.map(stat => stat.id);
+
+      // 3. ВЫЧИСЛЯЕМ ДАТЫ ОДИН РАЗ для всех статистик
+      const datePoint = new Date().toISOString().split('T')[0];
+      const reportDayTyped = new Date(datePoint + 'T00:00:00Z');
+      const weeksAgo = new Date(reportDayTyped);
+      weeksAgo.setDate(weeksAgo.getDate() - ((weeks - 1) * 7));
+
+      // 4. ОДИН запрос к БД для получения ВСЕХ данных для ВСЕХ статистик
+      // Используем QueryBuilder для сложного условия
+      const allStatisticData = await this.statisticDataRepository
+        .createQueryBuilder('data')
+        .where('data.statisticId IN (:...statisticIds)', { statisticIds }) // Ищем данные для любой из наших статистик
+        .andWhere('data.valueDate <= :reportDayTyped', { reportDayTyped })
+        .andWhere('data.valueDate >= :weeksAgo', { weeksAgo })
+        .andWhere('data.correlationType = :type', { type: CorrelationType.WEEK })
+        .orderBy('data.valueDate', 'ASC')
+        .getMany();
+
+              // 5. Группируем полученные данные по ID статистики.
+        // Получаем объект, где ключ - statisticId, значение - массив его данных
+        const dataGroupedByStatId = {};
+        allStatisticData.forEach(dataItem => {
+          // ВАЖНО: используем dataItem.statisticId, а не dataItem.statistic.id
+          // потому что мы не делали .leftJoinAndSelect('data.statistic', 'statistic')
+          const statId = dataItem.id; // ← ИСПРАВЛЕННАЯ СТРОКА
+          if (!dataGroupedByStatId[statId]) {
+            dataGroupedByStatId[statId] = [];
+          }
+          dataGroupedByStatId[statId].push(dataItem);
+        });
+
+      // 6. Собираем финальный результат, сопоставляя статистики и их данные
+      const statisticsWithData = statistics.map(statistic => {
+        // Для каждой статистики ищем её данные в сгруппированном объекте.
+        // Если данных нет - будет пустой массив.
+        const statisticDataForThisStat = dataGroupedByStatId[statistic.id] || [];
 
         const statisticReadDto: StatisticReadDto = {
           id: statistic.id,
@@ -341,7 +378,7 @@ export class StatisticService {
           description: statistic.description,
           createdAt: statistic.createdAt,
           updatedAt: statistic.updatedAt,
-          statisticDatas: statistic.statisticDatas,
+          statisticDatas: statistic.statisticDatas, // Это скорее всего всегда пусто, т.к. мы не джойнили 'statisticDatas' в основном запросе. Можно удалить.
           post: statistic.post,
           account: statistic.account,
           panelToStatistics: statistic.panelToStatistics,
@@ -350,17 +387,74 @@ export class StatisticService {
 
         return {
           statistic: statisticReadDto,
-          statisticData: statisticData,
+          statisticData: statisticDataForThisStat,
         };
-      }),
-    );
+      });
 
-    return statisticsWithData;
-  } catch (err) {
-    this.logger.error(err);
-    throw new InternalServerErrorException(
-      'Ошибка при получении статистик с данными за период!',
-    );
+      return statisticsWithData;
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException(
+        'Ошибка при получении статистик с данными за период!',
+      );
+    }
   }
-  }
+  // async findAllWithPeriod(
+  // organizationId: string,
+  // weeks: number,
+  // isActive?: boolean,
+  // ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
+  // try {
+  //   const where: any = { 
+  //     post: { organization: { id: organizationId } } 
+  //   };
+    
+  //   if (isActive !== undefined) {
+  //     where.isActive = isActive;
+  //   }
+
+  //   // Получаем все статистики организации
+  //   const statistics = await this.statisticRepository.find({
+  //     where: where,
+  //     relations: ['post'],
+  //   });
+  //    const datePoint = new Date().toISOString().split('T')[0];
+  //   // Для каждой статистики получаем данные за указанный период
+  //   const statisticsWithData = await Promise.all(
+  //     statistics.map(async (statistic) => {
+  //       const statisticData = await this.statisticDataService.findSeveralWeeks(
+  //         statistic.id,
+  //         datePoint,
+  //         weeks,
+  //       );
+
+  //       const statisticReadDto: StatisticReadDto = {
+  //         id: statistic.id,
+  //         type: statistic.type,
+  //         name: statistic.name,
+  //         description: statistic.description,
+  //         createdAt: statistic.createdAt,
+  //         updatedAt: statistic.updatedAt,
+  //         statisticDatas: statistic.statisticDatas,
+  //         post: statistic.post,
+  //         account: statistic.account,
+  //         panelToStatistics: statistic.panelToStatistics,
+  //         isActive: statistic.isActive,
+  //       };
+
+  //       return {
+  //         statistic: statisticReadDto,
+  //         statisticData: statisticData,
+  //       };
+  //     }),
+  //   );
+
+  //   return statisticsWithData;
+  // } catch (err) {
+  //   this.logger.error(err);
+  //   throw new InternalServerErrorException(
+  //     'Ошибка при получении статистик с данными за период!',
+  //   );
+  // }
+  // }
 }

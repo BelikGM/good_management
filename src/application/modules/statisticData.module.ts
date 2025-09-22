@@ -7,6 +7,6 @@ import { StatisticDataRepository } from '../services/statisticData/repository/st
 @Module({
   imports: [TypeOrmModule.forFeature([StatisticData])],
   providers: [StatisticDataService, StatisticDataRepository],
-  exports: [StatisticDataService],
+  exports: [StatisticDataService, StatisticDataRepository],
 })
 export class StatisticDataModule {}
