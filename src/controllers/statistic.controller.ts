@@ -158,7 +158,7 @@ export class StatisticController {
     @Req() req: ExpressRequest,
     @Param('statisticId') statisticId: string,
     @Body() statisticUpdateDto: StatisticUpdateDto,
-  ): Promise<{ id: string }> {
+  ): Promise<{ id: string; createdPointId: string | null }> {
     const user = req.user as ReadUserDto;
     const statisticDataCreateEventDtos: StatisticDataCreateEventDto[] = [];
     const statisticDataUpdateEventDtos: StatisticDataUpdateEventDto[] = [];
@@ -206,6 +206,7 @@ export class StatisticController {
       await Promise.all(updateStatisticDataPromises);
     }
 
+    let createdPointId: string | null = null;
     if (statisticUpdateDto.statisticDataCreateDtos !== undefined) {
       const createStatisticDataPromises =
         statisticUpdateDto.statisticDataCreateDtos.map(
@@ -226,7 +227,11 @@ export class StatisticController {
             return createdStatisticDataId;
           },
         );
-      await Promise.all(createStatisticDataPromises);
+     const createdIds = await Promise.all(createStatisticDataPromises);
+if (createdIds.length === 1) {
+  createdPointId = createdIds[0]; // если создана только одна точка
+}
+
     }
 
     const statisticUpdateEventDto: StatisticUpdateEventDto = {
@@ -269,16 +274,16 @@ export class StatisticController {
     // } catch (error) {
     //   if (error instanceof TimeoutError) {
     //     this.logger.error(
-    //       `Ошибка отправки в RabbitMQ: превышено время ожидания - ${error.message}`,
+    //       Ошибка отправки в RabbitMQ: превышено время ожидания - ${error.message},
     //     );
     //   } else {
-    //     this.logger.error(`Ошибка отправки в RabbitMQ: ${error.message}`);
+    //     this.logger.error(Ошибка отправки в RabbitMQ: ${error.message});
     //   }
     // }
-    this.logger.info(
-      `${yellow('OK!')} - UPDATED STATISTIC: ${JSON.stringify(statisticUpdateDto)} - Статистика успешно обновлена!`,
-    );
-    return { id: updatedStatisticId };
+    // this.logger.info(
+    //   ${yellow('OK!')} - UPDATED STATISTIC: ${JSON.stringify(statisticUpdateDto)} - Статистика успешно обновлена!,
+    // );
+   return { id: updatedStatisticId, createdPointId };
   }
 
   @Patch(':postId/updateBulk')
