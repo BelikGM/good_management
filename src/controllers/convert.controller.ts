@@ -292,27 +292,20 @@ export class ConvertController {
       (post) => post.id === convertCreateDto.senderPostId,
     );
     const isChat = convertCreateDto.convertType === TypeConvert.CHAT;
+
     const [postIdsFromSenderToTop, postIdsFromRecieverToTop, targetHolderPost] =
       await Promise.all([
-        isChat
-          ? []
-          : this.postService.getHierarchyToTop(convertCreateDto.senderPostId),
-        isChat
-          ? []
-          : this.postService.getHierarchyToTop(convertCreateDto.reciverPostId),
+        isChat ? [] : this.postService.getHierarchyToTop(convertCreateDto.senderPostId),
+        isChat ? [] : this.postService.getHierarchyToTop(convertCreateDto.reciverPostId),
         this.postService.findOneById(convertCreateDto.reciverPostId),
       ]);
-    const isCommonDivision = createPathFromSenderToRecieverPost(
-      postIdsFromSenderToTop,
-      postIdsFromRecieverToTop,
-    ).isCommonDivision;
-    const postIdsFromSenderToReciver = createPathFromSenderToRecieverPost(
-      postIdsFromSenderToTop,
-      postIdsFromRecieverToTop,
-    ).postIdsFromSenderToReciver;
-    console.log(postIdsFromSenderToTop); // ___________________________LOG
-    console.log(postIdsFromRecieverToTop); // ___________________________LOG
-    console.log(postIdsFromSenderToReciver); // ___________________________LOG
+
+    const { isCommonDivision, postIdsFromSenderToReciver } =
+      createPathFromSenderToRecieverPost(
+        postIdsFromSenderToTop,
+        postIdsFromRecieverToTop,
+      );
+
     if (!isCommonDivision && !isChat) {
       convertCreateDto.convertPath = PathConvert.REQUEST;
     } else if (postIdsFromSenderToReciver.length > 2 && !isChat) {
@@ -326,6 +319,7 @@ export class ConvertController {
       : postIdsFromSenderToReciver;
     convertCreateDto.host = userPost;
     convertCreateDto.account = user.account;
+
     if (convertCreateDto.convertType === TypeConvert.ORDER) {
       convertCreateDto.targetCreateDto.holderPost = targetHolderPost;
     }
@@ -334,14 +328,23 @@ export class ConvertController {
       this.convertService.create(convertCreateDto),
       this.postService.findOneById(convertCreateDto.pathOfPosts[1], ['user']),
     ]);
-      await this.messageService.create({
-    content: convertCreateDto.convertTheme, // передаем тему как текст сообщения
-    postId: convertCreateDto.senderPostId,
-    convert: createdConvert,
-    sender: userPost, // от кого сообщение
-  });
 
-    // Если у поста есть юзер, то прокидывать сокет
+    // 1️⃣ Создаём первое сообщение — тему
+    await this.messageService.create({
+      content: convertCreateDto.convertTheme,
+      postId: convertCreateDto.senderPostId,
+      convert: createdConvert,
+      sender: userPost,
+    });
+
+    await this.messageService.create({
+      content: convertCreateDto.messageContent,
+      postId: convertCreateDto.senderPostId,
+      convert: createdConvert,
+      sender: userPost,
+    });
+
+    // Сокеты
     if (activePost.user !== null) {
       const index = createdConvert.pathOfPosts.indexOf(userPost.id);
       const pathOfPostsWithoutHostPost = createdConvert.pathOfPosts.splice(
@@ -350,6 +353,7 @@ export class ConvertController {
       );
       createdConvert.host.user = user;
       createdConvert.host.user.posts = null;
+
       this.convertGateway.handleConvertCreationEvent(
         createdConvert.id,
         createdConvert.host,
@@ -357,12 +361,16 @@ export class ConvertController {
         pathOfPostsWithoutHostPost,
       );
     }
+
     this.logger.info(
-      `${yellow('OK!')} - convertCreateDto: ${JSON.stringify(convertCreateDto)} - Создан новый конверт!`,
+      `${yellow('OK!')} - convertCreateDto: ${JSON.stringify(
+        convertCreateDto,
+      )} - Создан новый конверт!`,
     );
 
     return { id: createdConvert.id };
   }
+
 
   @Patch(':convertId/approve') // в guard проверку на host.user.id и что activePostId не последний в массиве
   @UseGuards(ApproveConvertGuard)

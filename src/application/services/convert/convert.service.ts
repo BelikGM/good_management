@@ -345,26 +345,15 @@ export class ConvertService {
       convert.activePostId = convertCreateDto.pathOfPosts[1];
       convert.host = convertCreateDto.host;
       convert.account = convertCreateDto.account;
-      const createdConvert = await this.convertRepository.save(convert);
 
-      const messageCreateDto: MessageCreateDto = {
-        content:
-          convertCreateDto.targetCreateDto !== undefined
-            ? convertCreateDto.targetCreateDto.content
-            : convertCreateDto.convertTheme,
-        postId: convertCreateDto.host.id,
-        attachmentIds:
-          convertCreateDto.targetCreateDto !== undefined
-            ? convertCreateDto.targetCreateDto.attachmentIds
-            : undefined,
-        convert: createdConvert,
-        sender: convert.host,
-      };
+      const createdConvert = await this.convertRepository.save(convert);
 
       const postsToConvert = convertCreateDto.pathOfPosts
         .slice(0, 2)
         .concat(
-          convertCreateDto.pathOfPosts[convertCreateDto.pathOfPosts.length - 1],
+          convertCreateDto.pathOfPosts[
+            convertCreateDto.pathOfPosts.length - 1
+          ],
         )
         .filter(
           (postId, index, arr) =>
@@ -379,16 +368,16 @@ export class ConvertService {
         convertCreateDto.targetCreateDto
           ? this.targetService.create(convertCreateDto.targetCreateDto)
           : null,
-        convertCreateDto.convertType !== TypeConvert.CHAT
-          ? this.messageService.create(messageCreateDto)
-          : null,
+        // 🔴 Удалено: создание первого сообщения здесь
       ]);
+
       return createdConvert;
     } catch (err) {
       this.logger.error(err);
       throw new InternalServerErrorException('Ошибка при создании конверта');
     }
   }
+
 
   // async createBulkForProject(convertCreateDtos: ConvertCreateDto[]): Promise<Convert[]> {
   //   try {
