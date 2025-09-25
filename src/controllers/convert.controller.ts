@@ -329,14 +329,6 @@ export class ConvertController {
       this.postService.findOneById(convertCreateDto.pathOfPosts[1], ['user']),
     ]);
 
-    // 1️⃣ Создаём первое сообщение — тему
-    await this.messageService.create({
-      content: convertCreateDto.convertTheme,
-      postId: convertCreateDto.senderPostId,
-      convert: createdConvert,
-      sender: userPost,
-    });
-
     await this.messageService.create({
       content: convertCreateDto.messageContent,
       postId: convertCreateDto.senderPostId,
