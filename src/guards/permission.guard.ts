@@ -28,7 +28,7 @@ export class PermissionsGuard implements CanActivate {
     const defaultPost = posts.find(
       (post) => post.isDefault
     );
-
+    console.log('Default Post:', defaultPost);
     if (defaultPost.role.roleName === Roles.OWNER) {
       return true;
     }
@@ -75,6 +75,8 @@ export class PermissionsGuard implements CanActivate {
         return roleSettings.can_create;
       case Actions.UPDATE:
         return roleSettings.can_update;
+        case Actions.DELETE:
+        return roleSettings.can_update
       default:
         return false;
     }

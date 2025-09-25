@@ -144,6 +144,7 @@ export class ControlPanelService {
       // ОЧИЩАЕМ postId ЕСЛИ ПАНЕЛЬ СТАНОВИТСЯ ГЛОБАЛЬНОЙ
       if (updateControlPanelDto.panelType === PanelType.GLOBAL) {
         controlPanel.post = null;
+
       }
       // if (updateControlPanelDto.statisticIds) {
       //   await this.panelToStatisticService.remove(controlPanel);
