@@ -7,6 +7,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+    ValidateIf,
 } from 'class-validator';
 import { Convert } from 'src/domains/convert.entity';
 import { Post } from 'src/domains/post.entity';
@@ -14,13 +15,14 @@ import { Post } from 'src/domains/post.entity';
 export class MessageCreateDto {
   @ApiProperty({
     description: 'Текст сообщения',
-    required: true,
+    required: false, // теперь поле не обязательно
     example: 'Текст',
   })
-  @IsString()
+  @ValidateIf((o) => !o.attachmentIds || o.attachmentIds.length === 0)
+  @IsString({ message: 'Контент должен быть строкой' })
   @MaxLength(4096, { message: 'Сообщение не может быть больше 4096 символов' })
   @IsNotEmpty({ message: 'Текст сообщения не может быть пустым!' })
-  content: string;
+  content?: string;
 
   @ApiProperty({
     description: 'Id поста отправителя',
