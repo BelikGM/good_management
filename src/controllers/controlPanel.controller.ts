@@ -174,17 +174,19 @@ export class ControlPanelController {
   })
   async update(
     @Param('controlPanelId') controlPanelId: string,
-    @Body() сontrolPanelUpdateDto: ControlPanelUpdateDto,
+    @Body() controlPanelUpdateDto: ControlPanelUpdateDto,
+    @Req() req: ExpressRequest,
   ): Promise<{ id: string }> {
+    const user = req.user as ReadUserDto;
     const updatedControlPanelId = await this.controlPanelService.update(
       controlPanelId,
-      сontrolPanelUpdateDto,
-    );
-    this.logger.info(
-      `${yellow('OK!')} - UPDATED CONTROLPANEL: ${JSON.stringify(сontrolPanelUpdateDto)} - Панель успешно обновлена!`,
+      controlPanelUpdateDto,
+      user,
     );
     return { id: updatedControlPanelId };
   }
+
+    
 
   @Delete(':controlPanelId/remove')
   @UseGuards(PermissionsGuard)

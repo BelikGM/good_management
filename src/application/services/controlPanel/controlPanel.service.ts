@@ -15,13 +15,16 @@ import { ControlPanelReadDto } from 'src/contracts/controlPanel/read-controlPane
 import { ControlPanelCreateDto } from 'src/contracts/controlPanel/create-controlPanel.dto';
 import { ControlPanelUpdateDto } from 'src/contracts/controlPanel/update-controlPanel.dto';
 import { Transactional } from 'nestjs-transaction';
-
+import { PostService } from '../post/post.service';
+import { ReadUserDto } from 'src/contracts/user/read-user.dto';
+import { BadRequestException } from '@nestjs/common/exceptions';
 @Injectable()
 export class ControlPanelService {
   constructor(
     @InjectRepository(ControlPanel)
     private readonly controlPanelRepository: ControlPanelRepository,
     private readonly panelToStatisticService: PanelToStatisticService,
+    private readonly postService: PostService, // ✅ добавил сюда
     @Inject('winston') private readonly logger: Logger,
   ) { }
 
@@ -127,7 +130,9 @@ export class ControlPanelService {
   async update(
     _id: string,
     updateControlPanelDto: ControlPanelUpdateDto,
-  ): Promise<string> {
+    user: ReadUserDto,
+  ): Promise<string>
+   {
     try {
       const controlPanel = await this.controlPanelRepository.findOne({
         where: { id: _id },
@@ -141,11 +146,23 @@ export class ControlPanelService {
       }
       if (updateControlPanelDto.panelType)
         controlPanel.panelType = updateControlPanelDto.panelType;
-      // ОЧИЩАЕМ postId ЕСЛИ ПАНЕЛЬ СТАНОВИТСЯ ГЛОБАЛЬНОЙ
-      if (updateControlPanelDto.panelType === PanelType.GLOBAL) {
-        controlPanel.post = null;
+        // Очистка поста если панель глобальная
+        if (updateControlPanelDto.panelType === PanelType.GLOBAL) {
+          controlPanel.post = null;
+        }
 
-      }
+        // Если панель локальная — ищем дефолтный пост пользователя
+        if (updateControlPanelDto.panelType === PanelType.LOCAL) {
+          const defaultPost = user.posts.find((p) => p.isDefault);
+          if (!defaultPost) {
+            throw new BadRequestException('У пользователя нет дефолтного поста');
+          }
+          const post = await this.postService.findOneById(defaultPost.id);
+          controlPanel.post = post;
+        }
+
+
+
       // if (updateControlPanelDto.statisticIds) {
       //   await this.panelToStatisticService.remove(controlPanel);
       //   await this.panelToStatisticService.createSeveral(

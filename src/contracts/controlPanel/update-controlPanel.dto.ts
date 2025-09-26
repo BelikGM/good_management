@@ -45,4 +45,15 @@ export class ControlPanelUpdateDto {
   @IsArray({ message: 'Список Ids статистик должен быть массивом' })
   @IsUUID('4', { each: true, message: 'Каждый элемент должен быть UUID v4' })
   statisticIds?: string[];
+
+    @ApiProperty({
+    description: 'ID поста, к которому привязать панель (обязательно при типе панели "Личная")',
+    required: false,
+    example: '16ee6c67-0cc9-4d08-8622-7b50c4c7f45c',
+  })
+  @IsOptional()
+  @IsUUID(undefined, { message: 'postId должен быть валидным UUID' })
+  postId?: string;
+
+
 }
