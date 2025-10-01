@@ -338,54 +338,60 @@ async getMyPostsInOrganization(
     return { id: updatedPostId };
   }
 
-  @Get(':organizationId/new')
-  @UseGuards(PermissionsGuard)
-  @ModuleAccess(Modules.POST)
-  @ActionAccess(Actions.READ)
-  @ApiOperation({ summary: 'Получить данные для создания поста' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'ОК!',
-    example: beforeCreateExample,
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: 'Вы не авторизованы!',
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Ошибка сервера!',
-  })
-  @ApiParam({
-    name: 'organizationId',
-    required: true,
-    description: 'Id организации',
-    example: '2d1cea4c-7cea-4811-8cd5-078da7f20167',
-  })
-  async beforeCreate(@Param('organizationId') organizationId: string): Promise<{
-    workers: ReadUserDto[];
-    policies: PolicyReadDto[];
-    posts: PostReadDto[];
-    roles: RoleReadDto[];
-    maxDivisionNumber: number;
-  }> {
-    const [policies, workers, posts, roles, maxDivisionNumber] =
-      await Promise.all([
-        this.policyService.findAllActiveForOrganization(organizationId),
-        this.userService.findAllForOrganization(organizationId),
-        this.postService.findAllForOrganization(organizationId, false),
-        this.roleService.findAll(),
-        this.postService.findMaxDivisionNumber(organizationId),
-      ]);
+     @Get(':organizationId/new')
+    @UseGuards(PermissionsGuard)
+    @ModuleAccess(Modules.POST)
+    @ActionAccess(Actions.READ)
+    @ApiOperation({ summary: 'Получить данные для создания поста' })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'ОК!',
+      example: beforeCreateExample,
+    })
+    @ApiResponse({
+      status: HttpStatus.UNAUTHORIZED,
+      description: 'Вы не авторизованы!',
+    })
+    @ApiResponse({
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      description: 'Ошибка сервера!',
+    })
+    @ApiParam({
+      name: 'organizationId',
+      required: true,
+      description: 'Id организации',
+      example: '2d1cea4c-7cea-4811-8cd5-078da7f20167',
+    })
+    async beforeCreate(
+      @Param('organizationId') organizationId: string
+    ): Promise<{
+      workers: ReadUserDto[];
+      policies: PolicyReadDto[];
+      posts: PostReadDto[];
+      roles: RoleReadDto[];
+      maxDivisionNumber: number;
+    }> {
+      const organization = await this.organizationService.findOneById(organizationId);
+      const account = organization.account;
 
-    return {
-      workers: workers,
-      policies: policies,
-      posts: posts,
-      roles: roles,
-      maxDivisionNumber: maxDivisionNumber,
-    };
-  }
+      const [policies, workers, posts, roles, maxDivisionNumber] =
+        await Promise.all([
+          this.policyService.findAllActiveForOrganization(organizationId),
+          this.userService.findAllForAccount(account),
+          this.postService.findAllForOrganization(organizationId, false),
+          this.roleService.findAll(),
+          this.postService.findMaxDivisionNumber(organizationId),
+        ]);
+
+      return {
+        workers,
+        policies,
+        posts,
+        roles,
+        maxDivisionNumber,
+      };
+    }
+
 
   @Get(':postId/post')
   @UseGuards(PermissionsGuard)
