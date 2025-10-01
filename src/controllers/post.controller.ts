@@ -371,8 +371,13 @@ async getMyPostsInOrganization(
       roles: RoleReadDto[];
       maxDivisionNumber: number;
     }> {
-      const organization = await this.organizationService.findOneById(organizationId);
+      const organization = await this.organizationService.findOneById(
+        organizationId,
+        ['account'],
+      );
       const account = organization.account;
+      console.log('ORGANIZATION ACCOUNT:', organization.account);
+
 
       const [policies, workers, posts, roles, maxDivisionNumber] =
         await Promise.all([
