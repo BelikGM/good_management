@@ -29,8 +29,8 @@ export enum ReportDay {
   WEDNESDAY = 3,
   THURSDAY = 4,
   FRIDAY = 5,
-  SUNDAY = 6,
-  SATURDAY = 0,
+  SATURDAY = 6,
+  SUNDAY = 0,
 }
 
 /**
