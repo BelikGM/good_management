@@ -630,15 +630,15 @@ private mapPostToDto(post: Post): PostReadDto {
       post.parentId = postCreateDto.parentId;
       post.product = postCreateDto.product;
       post.purpose = postCreateDto.purpose;
-      post.user = postCreateDto.user;
+      post.user = postCreateDto.user ?? null;
       post.organization = postCreateDto.organization;
       post.policy = postCreateDto.policy;
       post.account = postCreateDto.account;
       post.role = postCreateDto.role;
-      console.log(postCreateDto.user.posts);
-      if (postCreateDto.user.posts.length < 1) {
+      if (postCreateDto.user?.posts?.length < 1) {
         post.isDefault = true;
       }
+
       const createdPostId = await this.postRepository.insert(post);
       if (postCreateDto.responsibleUserId) {
         await this.cacheService.del(`user:${postCreateDto.responsibleUserId}`);

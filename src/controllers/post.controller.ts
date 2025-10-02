@@ -563,7 +563,10 @@ async getMyPostsInOrganization(
             postCreateDto.user = user;
           }),
       );
+    } else {
+      postCreateDto.user = null;
     }
+
 
     promises.push(
       this.organizationService
