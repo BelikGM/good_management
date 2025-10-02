@@ -437,9 +437,13 @@ async getMyPostsInOrganization(
       'policy',
       'user',
       'organization',
+      'organization.account',
       'statistics',
       'role'
     ]);
+    const organizationId = currentPost.organization.id;
+    const account = currentPost.organization.account;
+
     const isHasBoss = currentPost.parentId !== null ? true : false;
     const [posts, workers, policiesActive, roles] = await Promise.all([
       isHasBoss
@@ -449,7 +453,7 @@ async getMyPostsInOrganization(
           false,
           ['user'],
         ),
-      this.userService.findAllForOrganization(currentPost.organization.id),
+      this.userService.findAllForAccount(account),
       this.policyService.findAllActiveForOrganization(
         currentPost.organization.id,
       ),
