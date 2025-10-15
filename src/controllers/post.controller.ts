@@ -107,6 +107,36 @@ async getMyPostsInOrganization(
     relations,
   );
 }
+  
+  @Get('myPosts')
+  @ApiOperation({ summary: 'Получить все мои посты во всех организациях аккаунта' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Список всех моих постов',
+    type: [PostReadDto],
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Не авторизован',
+  })
+  @ApiQuery({
+    name: 'relations',
+    required: false,
+    description: 'Список отношений (relations) через запятую, например: user,organization,role',
+  })
+  async getMyPosts(
+    @Req() req: ExpressRequest,
+    @Query('relations') relations?: string,
+  ): Promise<PostReadDto[]> {
+    const user = req.user as ReadUserDto;
+    // разбиваем строку relations в массив, если она передана
+    const relationsArr = relations
+      ? relations.split(',').map(r => r.trim())
+      : undefined;
+
+    return this.postService.findAllForUser(user.id, relationsArr);
+  }
+
 
    @Get(':organizationId/contacts')
   @UseGuards(PermissionsGuard)
