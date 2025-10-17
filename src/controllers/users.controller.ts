@@ -75,6 +75,64 @@ export class UsersController {
     return await this.usersService.findAllForOrganization(organizationId);
   }
 
+  
+  @Get(':organizationId/organization/active')
+  @ApiOperation({ summary: 'Все активные пользователи в организации (не уволенные)' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'ОК!',
+    type: ReadUserDto,
+    isArray: true,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Вы не авторизованы!',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Ошибка сервера!',
+  })
+  @ApiParam({
+    name: 'organizationId',
+    required: true,
+    description: 'Id организации',
+    example: '2d1cea4c-7cea-4811-8cd5-078da7f20167',
+  })
+  async findAllActiveUsers(
+    @Param('organizationId') organizationId: string,
+  ): Promise<ReadUserDto[]> {
+    return await this.usersService.findAllActiveForOrganization(organizationId);
+  }
+
+
+  @Get(':organizationId/organization/fired')
+  @ApiOperation({ summary: 'Все уволенные пользователи в организации' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'ОК!',
+    type: ReadUserDto,
+    isArray: true,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Вы не авторизованы!',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Ошибка сервера!',
+  })
+  @ApiParam({
+    name: 'organizationId',
+    required: true,
+    description: 'Id организации',
+    example: '2d1cea4c-7cea-4811-8cd5-078da7f20167',
+  })
+  async findAllFiredUsers(
+    @Param('organizationId') organizationId: string,
+  ): Promise<ReadUserDto[]> {
+    return await this.usersService.findAllFiredForOrganization(organizationId);
+  }
+
   @Get(':orgainizationId/new')
   @ApiOperation({ summary: 'Получить данные для создания юзера' })
   @ApiResponse({

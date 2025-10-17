@@ -83,37 +83,69 @@ export class UsersService {
   async findAllForOrganization(
     organizationId: string,
     relations?: string[],
+    isFired?: boolean, // новый параметр
   ): Promise<ReadUserDto[]> {
     try {
+      const where: any = {
+        organization: { id: organizationId },
+      };
+
+      if (isFired !== undefined) {
+        where.isFired = isFired;
+      }
+
       const users = await this.usersRepository.find({
-        where: { organization: { id: organizationId } },
+        where,
         relations: relations ?? [],
       });
-      return users.map((user) => ({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        middleName: user.middleName,
-        telegramId: user.telegramId,
-        telephoneNumber: user.telephoneNumber,
-        avatar_url: user.avatar_url,
-        vk_id: user.vk_id,
-        isFired: user.isFired,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        posts: user.posts,
-        refreshSessions: user.refreshSessions,
-        organization: user.organization,
-        account: user.account,
-        historiesUsersToPost: user.historiesUsersToPost,
-      }));
+
+      return users.map(this.mapToReadDto);
     } catch (err) {
       this.logger.error(err);
       throw new InternalServerErrorException(
-        'Ошибка при получении всех пользователей!',
+        'Ошибка при получении пользователей!',
       );
     }
   }
+
+  // Вынеси маппинг в отдельный метод:
+  private mapToReadDto(user: User): ReadUserDto {
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      middleName: user.middleName,
+      telegramId: user.telegramId,
+      telephoneNumber: user.telephoneNumber,
+      avatar_url: user.avatar_url,
+      vk_id: user.vk_id,
+      isFired: user.isFired,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      posts: user.posts,
+      refreshSessions: user.refreshSessions,
+      organization: user.organization,
+      account: user.account,
+      historiesUsersToPost: user.historiesUsersToPost,
+    };
+  }
+
+  // Дочерние методы:
+
+  async findAllActiveForOrganization(
+    organizationId: string,
+    relations?: string[],
+  ): Promise<ReadUserDto[]> {
+    return this.findAllForOrganization(organizationId, relations, false);
+  }
+
+  async findAllFiredForOrganization(
+    organizationId: string,
+    relations?: string[],
+  ): Promise<ReadUserDto[]> {
+    return this.findAllForOrganization(organizationId, relations, true);
+  }
+
 
   async findOne(id: string, relations?: string[]): Promise<ReadUserDto> {
     try {
