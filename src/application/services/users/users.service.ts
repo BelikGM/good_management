@@ -52,7 +52,7 @@ export class UsersService {
     try {
       const users = await this.usersRepository.find({
         where: { account: { id: account.id } },
-        relations: relations ?? [],
+          relations: relations ??  ['posts', 'organization'],
       });
       return users.map((user) => ({
         id: user.id,

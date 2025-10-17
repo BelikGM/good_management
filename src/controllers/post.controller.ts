@@ -107,8 +107,8 @@ async getMyPostsInOrganization(
     relations,
   );
 }
-  
-  @Get('myPosts')
+
+  @Get('myPosts') // Khalid_Kashimiri Khidir_Karawita Ismail_Ahmed_Kanabawi  Usman_Addal_Jaleel_Shisha Muhammad_Sumbul
   @ApiOperation({ summary: 'Получить все мои посты во всех организациях аккаунта' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -136,7 +136,6 @@ async getMyPostsInOrganization(
 
     return this.postService.findAllForUser(user.id, relationsArr);
   }
-
 
    @Get(':organizationId/contacts')
   @UseGuards(PermissionsGuard)
@@ -483,7 +482,7 @@ async getMyPostsInOrganization(
           false,
           ['user'],
         ),
-      this.userService.findAllForAccount(account),
+      this.userService.findAllForAccount(account, ['posts', 'posts.organization']),
       this.policyService.findAllActiveForOrganization(
         currentPost.organization.id,
       ),
