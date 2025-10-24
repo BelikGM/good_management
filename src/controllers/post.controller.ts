@@ -221,12 +221,15 @@ async getMyPostsInOrganization(
   })
   async findAll(
     @Query('structure') structure: boolean,
+    @Query('isArchive') isArchive: boolean,
     @Param('organizationId') organizationId: string,
   ): Promise<PostReadDto[]> {
     if (!structure) structure = false;
+    if (!isArchive) isArchive = false;
     const posts = await this.postService.findAllForOrganization(
       organizationId,
       structure,
+      isArchive,
       ['user'],
     );
     return posts;
@@ -412,7 +415,7 @@ async getMyPostsInOrganization(
         await Promise.all([
           this.policyService.findAllActiveForOrganization(organizationId),
           this.userService.findAllForAccount(account),
-          this.postService.findAllForOrganization(organizationId, false),
+          this.postService.findAllForOrganization(organizationId, false, false),
           this.roleService.findAll(),
           this.postService.findMaxDivisionNumber(organizationId),
         ]);
@@ -479,6 +482,7 @@ async getMyPostsInOrganization(
         ? this.postService.getParentPosts(currentPost.id)
         : this.postService.findAllForOrganization(
           currentPost.organization.id,
+          false,
           false,
           ['user'],
         ),

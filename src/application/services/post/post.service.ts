@@ -29,13 +29,14 @@ export class PostService {
   async findAllForOrganization(
     organizationId: string,
     structure: boolean,
+    isArchive: boolean,
     relations?: string[],
   ): Promise<PostReadDto[]> {
     try {
       const posts = await this.postRepository.find({
         where: {
           organization: { id: organizationId },
-          isArchive: false,
+          isArchive: isArchive,
         },
         relations: relations ?? [],
       });
