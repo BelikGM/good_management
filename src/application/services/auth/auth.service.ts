@@ -36,7 +36,11 @@ export class AuthService {
   async validateUser(payload: JwtPayloadInterface): Promise<ReadUserDto> {
     let user = await this.cacheService.get<ReadUserDto>(`user:${payload.id}`);
     if (user === null) {
-      user = await this.usersService.findOne(payload.id, ['account', 'posts.role']);
+      user = await this.usersService.findOne(payload.id, ['account',
+        'organization',
+        'posts',
+        'posts.role',
+        'posts.organization',]);
       await this.cacheService.set<ReadUserDto>(
         `user:${user.id}`,
         user,

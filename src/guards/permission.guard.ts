@@ -3,36 +3,42 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RoleSettingService } from 'src/application/services/roleSetting/roleSetting.service';
 import { PostReadDto } from 'src/contracts/post/read-post.dto';
 import { RoleSettingReadDto } from 'src/contracts/roleSetting/read-roleSetting.dto';
 import { Roles } from 'src/domains/role.entity';
-import { Actions, Modules, RoleSetting } from 'src/domains/roleSetting.entity';
+import { Actions, Modules } from 'src/domains/roleSetting.entity';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
+  private readonly logger = new Logger(PermissionsGuard.name);
+
   constructor(
     private readonly reflector: Reflector,
     private readonly roleSettingService: RoleSettingService,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+
+    // 🧩 Получаем посты пользователя
     const posts: PostReadDto[] = request.user?.posts;
-    if (!posts) {
-      return false;
+    if (!posts || posts.length === 0) {
+      throw new ForbiddenException('У пользователя нет назначенных постов');
     }
+
+    // 🧩 Определяем organizationId (из params | query | headers)
+    const organizationId: string =
+      request.params.organizationId ||
+      request.query.organizationId ||
+      request.headers['x-organization-id'];
+
+    console.log("OrganizationId", organizationId);
     
-    const defaultPost = posts.find(
-      (post) => post.isDefault
-    );
-    console.log('Default Post:', defaultPost);
-    if (defaultPost.role.roleName === Roles.OWNER) {
-      return true;
-    }
-    // Получаем модуль и действие из метаданных
+    // 🧩 Определяем module и action из декораторов
     const module: Modules = this.reflector.get<Modules>(
       'module',
       context.getHandler(),
@@ -42,23 +48,68 @@ export class PermissionsGuard implements CanActivate {
       context.getHandler(),
     );
 
+   
     if (!module || !action) {
-      return false;
+      throw new ForbiddenException('Модуль или действие не указаны');
     }
 
-    const roleSetting = await this.roleSettingService.findByRoleAndModule(
-      defaultPost.role.id,
-      module,
+    // 🧩 Если организация не указана — разрешаем только чтение
+    if (!organizationId) {
+      return action === Actions.READ;
+    }
+
+
+    console.log('=== ALL USER POSTS ===');
+    console.log(JSON.stringify(posts, null, 2));  
+
+    // 🧩 Фильтруем посты по организации (с проверкой наличия organization)
+    const orgPosts = posts.filter(
+      (post) =>
+        post.organization &&
+        post.organization.id === organizationId &&
+        !post.isArchive,
     );
-    const hasPermission = this.checkPermission(roleSetting, module, action);
+    console.log('=== FILTERED ORG POSTS ===');
+    console.log(JSON.stringify(orgPosts, null, 2));
 
-    if (!hasPermission) {
-      throw new ForbiddenException(
-        'У вас нет прав для выполнения этого действия',
+    console.log(
+      `${PermissionsGuard.name} -> canActivate -> organizationId:`,
+      organizationId,
+    );
+
+    console.log(
+      `${PermissionsGuard.name} -> canActivate -> post.organization.id list:`,
+      posts.map((p) => p.organization?.id || null),
+    );
+    // 🧩 Если нет постов в этой организации — разрешаем только чтение
+    if (orgPosts.length === 0) {
+      this.logger.debug(
+        `Нет постов пользователя в организации ${organizationId}`,
       );
+      return action === Actions.READ;
     }
 
-    return true;
+    // 🧩 Проверяем права по каждому посту
+    for (const post of orgPosts) {
+      if (!post.role) continue; // если роль не подгружена
+      if (post.role.roleName === Roles.OWNER) {
+        return true; // OWNER — полный доступ
+      }
+
+      const roleSetting = await this.roleSettingService.findByRoleAndModule(
+        post.role.id,
+        module,
+      );
+
+      if (this.checkPermission(roleSetting, module, action)) {
+        return true;
+      }
+    }
+
+    // ❌ Если ни один пост не дал права
+    throw new ForbiddenException(
+      'У вас нет прав для выполнения этого действия в данной организации',
+    );
   }
 
   private checkPermission(
@@ -75,8 +126,8 @@ export class PermissionsGuard implements CanActivate {
         return roleSettings.can_create;
       case Actions.UPDATE:
         return roleSettings.can_update;
-        case Actions.DELETE:
-        return roleSettings.can_update
+      case Actions.DELETE:
+        return roleSettings.can_update; // или отдельный can_delete
       default:
         return false;
     }
