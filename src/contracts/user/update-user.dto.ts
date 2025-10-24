@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
 } from 'class-validator';
 
 export class UpdateUserDto {
@@ -70,8 +71,11 @@ export class UpdateUserDto {
     example: '+79787878788',
   })
   @IsOptional()
-  @IsMobilePhone('ru-RU', { strictMode: true })
+  @IsString()
   @IsNotEmpty({ message: 'Телефон юзера не может быть пустым!' })
+  @Matches(/^\+?\d{11,12}$/, {
+    message: 'Номер телефона должен содержать 11–12 цифр',
+  })
   telephoneNumber?: string;
 
   @ApiProperty({
