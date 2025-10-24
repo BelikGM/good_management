@@ -48,9 +48,9 @@ export class CreateUserDto {
     required: true,
     example: '+79787878778',
   })
-  @IsMobilePhone('ru-RU', { strictMode: true })
+  @IsMobilePhone('ru-RU', { strictMode: false }) // was true for 11 numbers check
   @IsNotEmpty({ message: 'Телефон юзера не может быть пустым!' })
-  telephoneNumber: string;
+  telephoneNumber: string;                                                                                                                                    
 
   @ApiProperty({
     description: 'Аватарка юзера',
