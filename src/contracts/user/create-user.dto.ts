@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
 } from 'class-validator';
 import { Account } from 'src/domains/account.entity';
 import { Organization } from 'src/domains/organization.entity';
@@ -48,8 +49,11 @@ export class CreateUserDto {
     required: true,
     example: '+79787878778',
   })
-  @IsMobilePhone('ru-RU', { strictMode: false }) // was true for 11 numbers check
+  @IsString()
   @IsNotEmpty({ message: 'Телефон юзера не может быть пустым!' })
+  @Matches(/^\+?\d{11,12}$/, {
+    message: 'Номер телефона должен содержать 11–12 цифр',
+  })
   telephoneNumber: string;                                                                                                                                    
 
   @ApiProperty({
