@@ -93,50 +93,22 @@ export class PostController {
   }
 
   @Get('myPostsInOrganization/:organizationId')
-@ApiOperation({ summary: 'Получить все посты текущего пользователя в организации' })
-@ApiResponse({ status: 200, description: 'Список постов пользователя', type: [PostReadDto] })
-async getMyPostsInOrganization(
-  @Param('organizationId') organizationId: string,
-  @Req() req: ExpressRequest, // Получаем запрос для доступа к пользователю
-  @Query('relations') relations?: string[],
-): Promise<PostReadDto[]> {
-  const user = req.user as ReadUserDto; // Предполагается, что пользователь есть в запросе
-  return this.postService.findUserPostsByOrganization(
-    organizationId,
-    user.id, // Используем ID авторизованного пользователя
-    relations,
-  );
-}
-
-  @Get('myPosts') // Khalid_Kashimiri Khidir_Karawita Ismail_Ahmed_Kanabawi  Usman_Addal_Jaleel_Shisha Muhammad_Sumbul
-  @ApiOperation({ summary: 'Получить все мои посты во всех организациях аккаунта' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Список всех моих постов',
-    type: [PostReadDto],
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: 'Не авторизован',
-  })
-  @ApiQuery({
-    name: 'relations',
-    required: false,
-    description: 'Список отношений (relations) через запятую, например: user,organization,role',
-  })
-  async getMyPosts(
-    @Req() req: ExpressRequest,
-    @Query('relations') relations?: string,
+  @ApiOperation({ summary: 'Получить все посты текущего пользователя в организации' })
+  @ApiResponse({ status: 200, description: 'Список постов пользователя', type: [PostReadDto] })
+  async getMyPostsInOrganization(
+    @Param('organizationId') organizationId: string,
+    @Req() req: ExpressRequest, // Получаем запрос для доступа к пользователю
+    @Query('relations') relations?: string[],
   ): Promise<PostReadDto[]> {
-    const user = req.user as ReadUserDto;
-    // разбиваем строку relations в массив, если она передана
-    const relationsArr = relations
-      ? relations.split(',').map(r => r.trim())
-      : undefined;
-
-    return this.postService.findAllForUser(user.id, relationsArr);
+    const user = req.user as ReadUserDto; // Предполагается, что пользователь есть в запросе
+    return this.postService.findUserPostsByOrganization(
+      organizationId,
+      user.id, // Используем ID авторизованного пользователя
+      relations,
+    );
   }
 
+ 
    @Get(':organizationId/contacts')
   @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POST)
