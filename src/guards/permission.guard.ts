@@ -25,13 +25,14 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
     
-    const defaultPost = posts.find(
-      (post) => post.isDefault
-    );
+   const defaultPost = posts.find(post => post.isDefault) || posts[0];
+
     console.log('Default Post:', defaultPost);
-    if (defaultPost.role.roleName === Roles.OWNER) {
+
+    if (defaultPost?.role?.roleName === Roles.OWNER) {
       return true;
     }
+
     // Получаем модуль и действие из метаданных
     const module: Modules = this.reflector.get<Modules>(
       'module',
