@@ -15,12 +15,13 @@ import { And, Brackets, In, IsNull, Not } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PostUpdateDefaultDto } from 'src/contracts/post/updateDefault-post.dto';
-
+import { Raw, MoreThan } from 'typeorm';
 @Injectable()
 export class PostService {
   constructor(
     @InjectRepository(Post)
     private readonly postRepository: PostRepository,
+
     @Inject(CACHE_MANAGER)
     private readonly cacheService: Cache,
     @Inject('winston') private readonly logger: Logger,
@@ -758,4 +759,75 @@ private mapPostToDto(post: Post): PostReadDto {
       );
     }
   }
+
+  // async hasUnreadOrUnrepliedMessages(postId: string): Promise<boolean> {
+  //   const result = await this.postRepository
+  //     .createQueryBuilder('post')
+  //     .innerJoin('post.convertToPosts', 'ctp')
+  //     .innerJoin('ctp.convert', 'c')
+  //     .innerJoin(
+  //       'c.messages',
+  //       'msg',
+  //       '"msg"."messageNumber" = (SELECT MAX("m"."messageNumber") FROM "message" "m" WHERE "m"."convertId" = "c"."id")'
+  //     )
+  //     // только последнее сообщение
+  //     .leftJoin(
+  //       'msg.seenStatuses',
+  //       'mss',
+  //       'mss.postId = :postId',
+  //       { postId }
+  //     )
+  //     .where('post.id = :postId', { postId })
+  //     .andWhere('msg.senderId != :postId')
+  //     .andWhere('mss.id IS NULL')
+  //     .getExists();
+
+  //   return result;
+  // }
+
+
+  // в postService
+async hasUnreadOrUnrepliedMessages(
+  contactPostId: string,
+  myPostIds: string[],
+): Promise<boolean> {
+  console.log('--- hasUnreadOrUnrepliedMessages called ---');
+  console.log('contactPostId:', contactPostId, 'myPostIds:', myPostIds);
+
+  const raw = await this.postRepository
+    .createQueryBuilder('post')
+    .innerJoin('post.convertToPosts', 'ctp')
+    .innerJoin('ctp.convert', 'c', 'c.convertStatus = true') // только активные
+    .innerJoin('c.messages', 'msg')
+    .innerJoin(
+      'msg.seenStatuses',
+      'mss',
+      'mss.postId IN (:...myPostIds)',
+      { myPostIds },
+    )
+    .innerJoin(
+      'c.convertToPosts',
+      'ctp_contact',
+      'ctp_contact.postId = :contactPostId',
+      { contactPostId },
+    )
+    .andWhere(
+      `"msg"."messageNumber" = (
+         SELECT MAX("m2"."messageNumber")
+         FROM "message" "m2"
+         WHERE "m2"."convertId" = c.id
+       )`,
+    )
+    .andWhere('"msg"."senderId" NOT IN (:...myPostIds)', { myPostIds })
+    .select('COUNT(DISTINCT c.id)', 'cnt')
+    .getRawOne();
+
+  const count = Number(raw?.cnt || 0);
+  console.log('unreplied-active-converts-count:', count);
+
+  return count > 0;
+}
+
+
+
 }

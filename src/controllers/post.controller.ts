@@ -96,19 +96,20 @@ export class PostController {
   @ApiOperation({ summary: 'Получить все посты текущего пользователя в организации' })
   @ApiResponse({ status: 200, description: 'Список постов пользователя', type: [PostReadDto] })
   async getMyPostsInOrganization(
-    @Param('organizationId') organizationId: string,
-    @Req() req: ExpressRequest, // Получаем запрос для доступа к пользователю
-    @Query('relations') relations?: string[],
-  ): Promise<PostReadDto[]> {
-    const user = req.user as ReadUserDto; // Предполагается, что пользователь есть в запросе
-    return this.postService.findUserPostsByOrganization(
-      organizationId,
-      user.id, // Используем ID авторизованного пользователя
-      relations,
-    );
-  }
+  @Param('organizationId') organizationId: string,
+  @Req() req: ExpressRequest, // Получаем запрос для доступа к пользователю
+  @Query('relations') relations?: string[],
+): Promise<PostReadDto[]> {
+  const user = req.user as ReadUserDto; // Предполагается, что пользователь есть в запросе
+  return this.postService.findUserPostsByOrganization(
+    organizationId,
+    user.id, // Используем ID авторизованного пользователя
+    relations,
+  );
+}
 
- 
+
+
    @Get(':organizationId/contacts')
   @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POST)
@@ -152,11 +153,20 @@ export class PostController {
       post => !postsWithConvertsIds.includes(post.id)
     );
 
+    const contactsWithStatus = await Promise.all(
+      postsWithConverts.map(async (post) => ({
+        ...post,
+        hasUnrepliedMessage: await this.postService.hasUnreadOrUnrepliedMessages(
+          post.id, userPostsIds
+        ),
+      })),
+    );
+    console.log('CONTACTS WITH STATUS:', contactsWithStatus);
     const c = new Date();
     const end = c.getTime() - start.getTime();
     console.log(`все контакты ${end}`);
     return {
-      postsWithConverts,
+      postsWithConverts: contactsWithStatus,
       postsWithoutConverts: filteredPostsWithoutConverts,
     };
   }
