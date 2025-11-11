@@ -161,7 +161,7 @@ export class PostController {
         ),
       })),
     );
-    console.log('CONTACTS WITH STATUS:', contactsWithStatus);
+   // console.log('CONTACTS WITH STATUS:', contactsWithStatus);
     const c = new Date();
     const end = c.getTime() - start.getTime();
     console.log(`все контакты ${end}`);

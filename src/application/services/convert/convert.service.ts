@@ -534,4 +534,36 @@ export class ConvertService {
       );
     }
   }
+
+  async hasUnreadOrUnrepliedForConvert(
+    convertId: string,
+    myPostIds: string[],
+  ): Promise<boolean> {
+    const raw = await this.convertRepository
+      .createQueryBuilder('c')
+      .innerJoin('c.messages', 'msg')
+      .innerJoin(
+        'msg.seenStatuses',
+        'mss',
+        'mss.postId IN (:...myPostIds)',
+        { myPostIds },
+      )
+      .where('c.id = :convertId', { convertId })
+      .andWhere('c.convertStatus = true')
+      .andWhere(
+        `"msg"."messageNumber" = (
+          SELECT MAX("m2"."messageNumber")
+          FROM "message" "m2"
+          WHERE "m2"."convertId" = :convertId
+        )`,
+        { convertId },
+      )
+      .andWhere(`"msg"."senderId" NOT IN (:...myPostIds)`, { myPostIds })
+      .select('COUNT(msg.id)', 'cnt')
+      .getRawOne();
+
+    return Number(raw?.cnt || 0) > 0;
+}
+
+
 }

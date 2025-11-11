@@ -196,14 +196,34 @@ export class ConvertController {
           this.convertService.findAllCopiesForContact(userPostsIds, contactPostsIds),
         ]);
 
+        const convertsWithStatus = await Promise.all(
+          convertsForContact.map(async convert => ({
+            ...convert,
+            hasUnrepliedMessage: await this.convertService.hasUnreadOrUnrepliedForConvert(
+              convert.id,
+              userPostsIds,
+            ),
+          }))
+        );
+
+        const copiesWithStatus = await Promise.all(
+          copiesForContact.map(async copy => ({
+            ...copy,
+            hasUnrepliedMessage: await this.convertService.hasUnreadOrUnrepliedForConvert(
+              copy.id,
+              userPostsIds,
+            ),
+          }))
+        );
+
       const c = new Date();
       const end = c.getTime() - start.getTime();
       console.log(`чаты ${end}`);
       
       return {
         contact: contacts,
-        convertsForContact: convertsForContact,
-        copiesForContact: copiesForContact,
+        convertsForContact: convertsWithStatus,
+        copiesForContact: copiesWithStatus,
       };
 
     } catch (error) {
@@ -521,4 +541,6 @@ export class ConvertController {
     );
     return updatedConvertId;
   }
+
+
 }
