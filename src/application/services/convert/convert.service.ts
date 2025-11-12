@@ -18,7 +18,7 @@ import { TargetService } from '../target/target.service';
 import { MessageService } from '../message/message.service';
 import { MessageCreateDto } from 'src/contracts/message/create-message.dto';
 import { Transactional } from 'nestjs-transaction';
-
+import { DataSource } from 'typeorm';
 @Injectable()
 export class ConvertService {
   constructor(
@@ -28,6 +28,7 @@ export class ConvertService {
     private readonly watchersToConvertService: WatchersToConvertService,
     private readonly targetService: TargetService,
     private readonly messageService: MessageService,
+    private readonly dataSource: DataSource,
     @Inject('winston') private readonly logger: Logger,
   ) { }
 
@@ -535,35 +536,34 @@ export class ConvertService {
     }
   }
 
-  async hasUnreadOrUnrepliedForConvert(
-    convertId: string,
-    myPostIds: string[],
-  ): Promise<boolean> {
-    const raw = await this.convertRepository
-      .createQueryBuilder('c')
-      .innerJoin('c.messages', 'msg')
-      .innerJoin(
-        'msg.seenStatuses',
-        'mss',
-        'mss.postId IN (:...myPostIds)',
-        { myPostIds },
-      )
-      .where('c.id = :convertId', { convertId })
-      .andWhere('c.convertStatus = true')
-      .andWhere(
-        `"msg"."messageNumber" = (
-          SELECT MAX("m2"."messageNumber")
-          FROM "message" "m2"
-          WHERE "m2"."convertId" = :convertId
-        )`,
-        { convertId },
-      )
-      .andWhere(`"msg"."senderId" NOT IN (:...myPostIds)`, { myPostIds })
-      .select('COUNT(msg.id)', 'cnt')
-      .getRawOne();
+async hasUnreadOrUnrepliedForConvert(
+  convertId: string,
+  myPostIds: string[],
+): Promise<boolean> {
+  if (!myPostIds || myPostIds.length === 0) return false;
 
-    return Number(raw?.cnt || 0) > 0;
+  const sql = `
+    SELECT COUNT(last_msg.id) AS cnt
+    FROM "convert" c
+    JOIN LATERAL (
+      SELECT m.*
+      FROM "message" m
+      WHERE m."convertId" = c.id
+      ORDER BY m."messageNumber" DESC
+      LIMIT 1
+    ) last_msg ON true
+    JOIN "message_seen_status" mss 
+      ON mss."messageId" = last_msg.id 
+      AND mss."postId" = ANY($1)
+    WHERE c."id" = $2
+      AND c."convertStatus" = true
+      AND last_msg."senderId" NOT IN (SELECT unnest($1));
+  `;
+
+  const raw = await this.dataSource.query(sql, [myPostIds, convertId]);
+  return Number(raw[0]?.cnt || 0) > 0;
 }
+
 
 
 }

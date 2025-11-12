@@ -15,13 +15,13 @@ import { And, Brackets, In, IsNull, Not } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PostUpdateDefaultDto } from 'src/contracts/post/updateDefault-post.dto';
-import { Raw, MoreThan } from 'typeorm';
+import { Raw, MoreThan, DataSource } from 'typeorm';
 @Injectable()
 export class PostService {
   constructor(
     @InjectRepository(Post)
     private readonly postRepository: PostRepository,
-
+  private readonly dataSource: DataSource,
     @Inject(CACHE_MANAGER)
     private readonly cacheService: Cache,
     @Inject('winston') private readonly logger: Logger,
@@ -787,46 +787,42 @@ private mapPostToDto(post: Post): PostReadDto {
 
 
   // в postService
-async hasUnreadOrUnrepliedMessages(
-  contactPostId: string,
-  myPostIds: string[],
-): Promise<boolean> {
-  console.log('--- hasUnreadOrUnrepliedMessages called ---');
-  console.log('contactPostId:', contactPostId, 'myPostIds:', myPostIds);
+  
+ async hasUnreadOrUnrepliedMessagesForMany(contactPostIds: string[], myPostIds: string[]) {
+    if (!contactPostIds.length) return {};
+    if (!myPostIds.length) {
+      const empty = {};
+      contactPostIds.forEach(id => empty[id] = false);
+      return empty;
+    }
 
-  const raw = await this.postRepository
-    .createQueryBuilder('post')
-    .innerJoin('post.convertToPosts', 'ctp')
-    .innerJoin('ctp.convert', 'c', 'c.convertStatus = true') // только активные
-    .innerJoin('c.messages', 'msg')
-    .innerJoin(
-      'msg.seenStatuses',
-      'mss',
-      'mss.postId IN (:...myPostIds)',
-      { myPostIds },
-    )
-    .innerJoin(
-      'c.convertToPosts',
-      'ctp_contact',
-      'ctp_contact.postId = :contactPostId',
-      { contactPostId },
-    )
-    .andWhere(
-      `"msg"."messageNumber" = (
-         SELECT MAX("m2"."messageNumber")
-         FROM "message" "m2"
-         WHERE "m2"."convertId" = c.id
-       )`,
-    )
-    .andWhere('"msg"."senderId" NOT IN (:...myPostIds)', { myPostIds })
-    .select('COUNT(DISTINCT c.id)', 'cnt')
-    .getRawOne();
+    const sql = `
+      SELECT ctp_contact."postId" AS contact_post_id, COUNT(DISTINCT c.id) AS cnt
+      FROM "convert" c
+      JOIN LATERAL (
+        SELECT m.*
+        FROM "message" m
+        WHERE m."convertId" = c.id
+        ORDER BY m."messageNumber" DESC
+        LIMIT 1
+      ) last_msg ON true
+      JOIN "message_seen_status" mss ON mss."messageId" = last_msg.id AND mss."postId" = ANY($1)
+      JOIN "convert_to_post" ctp_contact ON ctp_contact."convertId" = c.id AND ctp_contact."postId" = ANY($2)
+      WHERE c."convertStatus" = true
+        AND last_msg."senderId" NOT IN (SELECT unnest($1))
+      GROUP BY ctp_contact."postId";
+    `;
 
-  const count = Number(raw?.cnt || 0);
-  console.log('unreplied-active-converts-count:', count);
+    const raw = await this.dataSource.query(sql, [myPostIds, contactPostIds]);
 
-  return count > 0;
-}
+    const result: Record<string, boolean> = {};
+    contactPostIds.forEach(id => (result[id] = false));
+    raw.forEach((r: any) => { result[r.contact_post_id] = Number(r.cnt) > 0; });
+
+    return result;
+  }
+
+
 
 
 

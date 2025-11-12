@@ -204,7 +204,7 @@ export class ConvertController {
               userPostsIds,
             ),
           }))
-        );
+        ); 
 
         const copiesWithStatus = await Promise.all(
           copiesForContact.map(async copy => ({

@@ -138,9 +138,13 @@ export class PostController {
     @Req() req: ExpressRequest,
     @Param('organizationId') organizationId: string,
   ): Promise<{ postsWithConverts: any, postsWithoutConverts: PostReadDto[] }> {
-    const start = new Date();
+    // console.log('--- /contacts START ---');
+      const start = Date.now();
     const user = req.user as ReadUserDto;
     const userPostsIds = user.posts.map((post) => post.id);
+
+    // console.time('findAllContacts -> SQL: findAllContactsInOrganizationForCurrentUser + findAllWithUserForOrganization');
+
     const [postsWithConverts, postsWithoutConverts] = await Promise.all([
       this.postService.findAllContactsInOrganizationForCurrentUser(organizationId, userPostsIds),
       this.postService.findAllWithUserForOrganization(organizationId, user.id, ['user']),
@@ -148,23 +152,35 @@ export class PostController {
     // const postsWithConverts = await this.postService.findAllContactsInOrganizationForCurrentUser(organizationId, userPostsIds);
     // const postsWithConvertsIds: string[] = postsWithConverts.map(post => post.id)
     // const postsWithoutConverts = await this.postService.findAllWithoutConvertForOrganization(organizationId, postsWithConvertsIds, ['user'])
+
+    // console.timeEnd('findAllContacts -> SQL: findAllContactsInOrganizationForCurrentUser + findAllWithUserForOrganization');
     const postsWithConvertsIds: string[] = postsWithConverts.map(post => post.id);
     const filteredPostsWithoutConverts = postsWithoutConverts.filter(
       post => !postsWithConvertsIds.includes(post.id)
     );
+      // console.time('findAllContacts -> LOOP hasUnreadOrUnrepliedMessages');
 
-    const contactsWithStatus = await Promise.all(
-      postsWithConverts.map(async (post) => ({
+      // Получаем все id контактов (postsWithConverts уже есть)
+      const contactPostIds = postsWithConverts.map(p => p.id);
+
+      // Один запрос к БД, который вернёт map contactPostId -> boolean
+      const unreadMap = await this.postService.hasUnreadOrUnrepliedMessagesForMany(contactPostIds, userPostsIds);
+
+      // Собираем итоговый массив
+      const contactsWithStatus = postsWithConverts.map(post => ({
         ...post,
-        hasUnrepliedMessage: await this.postService.hasUnreadOrUnrepliedMessages(
-          post.id, userPostsIds
-        ),
-      })),
-    );
+        hasUnrepliedMessage: !!unreadMap[post.id],
+      }));
+
+
    // console.log('CONTACTS WITH STATUS:', contactsWithStatus);
-    const c = new Date();
-    const end = c.getTime() - start.getTime();
-    console.log(`все контакты ${end}`);
+    // const c = new Date();
+    // const end = c.getTime() - start.getTime();
+    // console.log(`все контакты ${end}`);
+
+    // console.timeEnd('findAllContacts -> LOOP hasUnreadOrUnrepliedMessages');
+
+  // console.log('TOTAL /contacts duration:', Date.now() - start, 'ms');
     return {
       postsWithConverts: contactsWithStatus,
       postsWithoutConverts: filteredPostsWithoutConverts,
