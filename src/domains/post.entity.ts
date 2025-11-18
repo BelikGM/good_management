@@ -81,18 +81,16 @@ export class Post {
    * @remarks
    * nullable: false
    */
-  @Column({ type: 'text', nullable: false })
-  product: string;
-
-  /**
+  @Column({ type: 'text', nullable: true, default: null }) // Добавьте default: null
+  product: string | null;
+  /*
    * Цель поста.
    *
    * @remarks
    * nullable: false
    */
-  @Column({ type: 'text', nullable: false })
-  purpose: string;
-
+  @Column({ type: 'text', nullable: true, default: null }) // Добавьте default: null
+  purpose: string | null;
   /**
    * Флаг дефолтного поста.
    *

@@ -44,21 +44,23 @@ export class PostCreateDto {
 
   @ApiProperty({
     description: 'Продукт поста',
-    required: true,
+    required: false,
     example: 'Продукт',
   })
   @IsString()
-  @IsNotEmpty({ message: 'Продукт поста не может быть пустым!' })
-  product: string;
+  @IsOptional() 
+  // @IsNotEmpty({ message: 'Продукт поста не может быть пустым!' })
+  product?: string;
 
   @ApiProperty({
     description: 'Назначение поста',
     example: 'Предназначение поста',
-    required: true,
+    required: false,
   })
   @IsString()
-  @IsNotEmpty({ message: 'Предназначение поста не может быть пустым!' })
-  purpose: string;
+  @IsOptional() 
+  // @IsNotEmpty({ message: 'Предназначение поста не может быть пустым!' })
+  purpose?: string;
 
   @ApiProperty({
     description: 'ID роли',

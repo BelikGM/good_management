@@ -573,6 +573,7 @@ export class PostController {
     @Req() req: ExpressRequest,
     @Body() postCreateDto: PostCreateDto,
   ): Promise<{ id: string }> {
+  try {
     const user = req.user as ReadUserDto;
     const promises: Promise<void>[] = [];
 
@@ -634,31 +635,24 @@ export class PostController {
     //   }
 
     // }
+    const normalize = (value: any) =>
+    value === undefined || value === '' ? null : value;
+
     const createdEventPostDto: PostCreateEventDto = {
       eventType: 'POST_CREATED',
       id: createdPostId,
       postName: postCreateDto.postName,
-      divisionName:
-        postCreateDto.divisionName !== undefined
-          ? postCreateDto.divisionName
-          : null,
-      parentId:
-        postCreateDto.parentId !== undefined ? postCreateDto.parentId : null,
-      product: postCreateDto.product,
-      purpose: postCreateDto.purpose,
+      divisionName: normalize(postCreateDto.divisionName),
+      parentId: normalize(postCreateDto.parentId),
+      product: normalize(postCreateDto.product),
+      purpose: normalize(postCreateDto.purpose),
       createdAt: new Date(),
-      policyId:
-        postCreateDto.policyId !== undefined ? postCreateDto.policyId : null,
+      policyId: normalize(postCreateDto.policyId),
       accountId: user.account.id,
-      responsibleUserId:
-        postCreateDto.responsibleUserId !== undefined
-          ? postCreateDto.responsibleUserId
-          : null,
-      organizationId:
-        postCreateDto.organizationId !== undefined
-          ? postCreateDto.organizationId
-          : null,
+      responsibleUserId: normalize(postCreateDto.responsibleUserId),
+      organizationId: normalize(postCreateDto.organizationId),
     };
+
     // try {
     //   await Promise.race([
     //     this.producerService.sendCreatedPostToQueue(createdEventPostDto),
@@ -680,6 +674,11 @@ export class PostController {
     );
     return { id: createdPostId };
   }
+  catch (error) {
+    this.logger.error(`Ошибка в контроллере при создании поста: ${error.message}`);
+    throw error;
+  }
+}
 
   @Patch(':postId/changeDefaultPost')
   @UseGuards(PermissionsGuard)

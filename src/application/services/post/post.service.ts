@@ -630,8 +630,8 @@ private mapPostToDto(post: Post): PostReadDto {
       post.postName = postCreateDto.postName;
       post.divisionName = postCreateDto.divisionName;
       post.parentId = postCreateDto.parentId;
-      post.product = postCreateDto.product;
-      post.purpose = postCreateDto.purpose;
+      post.product = postCreateDto.product ?? null;
+      post.purpose = postCreateDto.purpose ?? null;
       post.user = postCreateDto.user ?? null;
       post.organization = postCreateDto.organization;
       post.policy = postCreateDto.policy;
@@ -663,44 +663,36 @@ private mapPostToDto(post: Post): PostReadDto {
         throw new NotFoundException(`Пост с ID ${_id} не найден`);
       }
 
-      if (updatePostDto.postName) post.postName = updatePostDto.postName;
+      // Обновляем только переданные поля
+      if (updatePostDto.postName !== undefined) post.postName = updatePostDto.postName;
+      if (updatePostDto.divisionName !== undefined) post.divisionName = updatePostDto.divisionName;
 
-      if (updatePostDto.divisionName)
-        post.divisionName = updatePostDto.divisionName;
-
-      if (updatePostDto.parentId !== null) {
+      // Для nullable полей проверяем именно на undefined, а не на falsy значения
+      if (updatePostDto.parentId !== undefined) {
         post.parentId = updatePostDto.parentId;
-      } else {
-        post.parentId = null;
       }
 
-      if (updatePostDto.product) post.product = updatePostDto.product;
+      // Для product и purpose разрешаем null и пустые строки
+      if (updatePostDto.product !== undefined) post.product = updatePostDto.product;
+      if (updatePostDto.purpose !== undefined) post.purpose = updatePostDto.purpose;
 
-      if (updatePostDto.purpose) post.purpose = updatePostDto.purpose;
-
-      if (updatePostDto.responsibleUserId !== null) {
+      if (updatePostDto.responsibleUserId !== undefined) {
         post.user = updatePostDto.user;
         await Promise.all([
           await this.cacheService.del(`user:${updatePostDto.responsibleUserId}`),
           post.user ? await this.cacheService.del(`user:${post.user.id}`) : null
-        ])
-      } else {
-        post.user = null;
+        ]);
       }
 
-      if (updatePostDto.policyId !== null) {
+      if (updatePostDto.policyId !== undefined) {
         post.policy = updatePostDto.policy;
-      } else {
-        post.policy = null;
       }
 
-
-      if (updatePostDto.roleId !== null) {
+      if (updatePostDto.roleId !== undefined) {
         post.role = updatePostDto.role;
       }
 
-      if (updatePostDto.isArchive != null)
-        post.isArchive = updatePostDto.isArchive;
+      if (updatePostDto.isArchive !== undefined) post.isArchive = updatePostDto.isArchive;
 
       await this.postRepository.update(post.id, {
         postName: post.postName,
@@ -714,6 +706,7 @@ private mapPostToDto(post: Post): PostReadDto {
         policy: post.policy,
         role: post.role
       });
+      
       return post.id;
     } catch (err) {
       this.logger.error(err);

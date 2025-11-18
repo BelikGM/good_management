@@ -57,7 +57,7 @@ export class PostUpdateDto {
   })
   @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Продукт не может быть пустым!' })
+ // @IsNotEmpty({ message: 'Продукт не может быть пустым!' })
   product?: string;
 
   @ApiProperty({
