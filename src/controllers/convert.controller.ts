@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Req,
+  SetMetadata,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -30,6 +31,7 @@ import { UsersService } from 'src/application/services/users/users.service';
 import { ConvertGateway } from 'src/gateways/convert.gateway';
 import { PathConvert, TypeConvert } from 'src/domains/convert.entity';
 import { AccessTokenGuard } from 'src/guards/accessToken.guard';
+import { PermissionsGuard } from 'src/guards/permission.guard';
 import { Request as ExpressRequest } from 'express';
 import { ReadUserDto } from 'src/contracts/user/read-user.dto';
 import { ConvertUpdateDto } from 'src/contracts/convert/update-convert.dto';
@@ -44,10 +46,13 @@ import { PostReadDto } from 'src/contracts/post/read-post.dto';
 import { ConvertFinishDto } from 'src/contracts/convert/finish-convert.dto';
 import { createPathFromSenderToRecieverPost } from 'src/helpersFunc/createPathFromSenderToRecieverPost';
 import { MessageService } from 'src/application/services/message/message.service';
-
+import { Actions, Modules } from 'src/domains/roleSetting.entity';
+import { ActionAccess } from 'src/decorators/action-access.decorator';
+import { ModuleAccess } from 'src/decorators/module-access.decorator';
 @ApiTags('Converts')
 @ApiBearerAuth('access-token')
 @UseGuards(AccessTokenGuard)
+@UseGuards(PermissionsGuard)
 @Controller('converts')
 export class ConvertController {
   constructor(
@@ -60,6 +65,8 @@ export class ConvertController {
   ) { }
 
   @Get(':userId/converts/archive')
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.READ)
   @ApiOperation({ summary: 'Все архивные конверты юзера' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -138,6 +145,8 @@ export class ConvertController {
   }
 
   @Get(':userId/converts')
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.READ)
   @ApiOperation({ summary: 'Все конверты для пользователя' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -213,6 +222,8 @@ export class ConvertController {
   }
 
   @Get(':convertId')
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.READ)
   @UseGuards(GetConvertGuard)
   @ApiOperation({ summary: 'Конверт по id' })
   @ApiResponse({
@@ -262,6 +273,8 @@ export class ConvertController {
   }
 
   @Post('new')
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.CREATE)
   @ApiOperation({ summary: 'Создать конверт' })
   @ApiBody({
     description: 'ДТО для создания конверта',
@@ -365,6 +378,8 @@ export class ConvertController {
 
 
   @Patch(':convertId/approve') // в guard проверку на host.user.id и что activePostId не последний в массиве
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.UPDATE)
   @UseGuards(ApproveConvertGuard)
   @ApiOperation({
     summary: 'Продолжить конверт (аппрувнуть) его по pathOfPosts',
@@ -430,6 +445,8 @@ export class ConvertController {
   }
 
   @Patch(':convertId/finish')
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.UPDATE)
   @UseGuards(FinishConvertGuard)
   @ApiOperation({ summary: 'Завершить конверт' })
   @ApiResponse({
@@ -481,6 +498,8 @@ export class ConvertController {
   }
 
   @Patch(':convertId/update')
+  @ModuleAccess(Modules.CONVERT)
+  @ActionAccess(Actions.UPDATE)
   @ApiOperation({ summary: 'Обновить конверт' })
   @ApiBody({
     description: 'ДТО для обновления конверта',

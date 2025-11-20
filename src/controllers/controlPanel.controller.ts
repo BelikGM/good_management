@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Req,
+  SetMetadata,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -44,6 +45,7 @@ import { ModuleAccess } from 'src/decorators/module-access.decorator';
 @ApiTags('ControlPanels')
 @ApiBearerAuth('access-token')
 @UseGuards(AccessTokenGuard)
+@UseGuards(PermissionsGuard)
 @Controller('controlPanels')
 export class ControlPanelController {
   constructor(
@@ -54,7 +56,6 @@ export class ControlPanelController {
   ) { }
 
   @Get(':organizationId')
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.CONTROL_PANEL)
   @ActionAccess(Actions.READ)
   @ApiOperation({ summary: 'Все панели в организации' })
@@ -89,7 +90,6 @@ export class ControlPanelController {
 
 
   @Post('new')
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.CONTROL_PANEL)
   @ActionAccess(Actions.CREATE)
   @ApiOperation({ summary: 'Создать панель управления' })
@@ -136,7 +136,6 @@ export class ControlPanelController {
   }
 
   @Patch(':controlPanelId/update')
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.CONTROL_PANEL)
   @ActionAccess(Actions.UPDATE)
   @ApiOperation({ summary: 'Обновить панель управления' })
@@ -189,7 +188,6 @@ export class ControlPanelController {
     
 
   @Delete(':controlPanelId/remove')
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.CONTROL_PANEL)
   @ActionAccess(Actions.DELETE)
   @ApiOperation({ summary: 'Удалить панель' })

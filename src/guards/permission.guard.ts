@@ -47,7 +47,8 @@ export class PermissionsGuard implements CanActivate {
       'action',
       context.getHandler(),
     );
-
+ console.log("Module", module);
+  console.log("Action", action);
    
     if (!module || !action) {
       throw new ForbiddenException('Модуль или действие не указаны');
@@ -102,6 +103,7 @@ export class PermissionsGuard implements CanActivate {
       );
 
       if (this.checkPermission(roleSetting, module, action)) {
+        console.log("RoleSetting",roleSetting," module",module,"action",action);
         return true;
       }
     }

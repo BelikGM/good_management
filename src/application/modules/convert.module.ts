@@ -11,6 +11,7 @@ import { TargetModule } from './target.module';
 import { MessageModule } from './message.module';
 import { WatchersToConvertModule } from './watchersToConvert.module';
 import { UsersModule } from './users.module';
+import { RoleSettingModule } from './roleSetting.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from './users.module';
     UsersModule,
     TargetModule,
     WatchersToConvertModule,
+    RoleSettingModule, 
     forwardRef(() => MessageModule),
     forwardRef(() => EventsModule),
   ],
