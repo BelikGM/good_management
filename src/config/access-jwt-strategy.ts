@@ -15,10 +15,21 @@ export class AccessJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: JwtPayloadInterface): Promise<ReadUserDto> {
+    // payload.id — ты так шлёшь access токены
     const user = await this.authService.validateUser(payload);
+
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Пользователь не найден');
     }
+
+    // ВОТ ЭТО ОЧЕНЬ ВАЖНО:
+    // здесь уже есть:
+    // user.posts
+    //   .[i].organization
+    //   .[i].role
+    //   .[i].isArchive
+    //   ...
+    // Они попадут в req.user и будут доступны в Guard'ах.
     return user;
   }
 }

@@ -1,7 +1,7 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
@@ -12,12 +12,27 @@ export class RefreshTokenStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: process.env.JWT_REFRESH_SECRET,
-      passReqToCallback: true,
+      passReqToCallback: true, // позволяет получить req в validate
     });
   }
 
   validate(req: Request, payload: any) {
-    const refreshToken = req.get('Authorization').replace('Bearer', '').trim();
-    return { ...payload, refreshToken };
+    // безопасно достаём заголовок авторизации
+    const authHeader = req.get('Authorization');
+    if (!authHeader) {
+      throw new UnauthorizedException('Отсутствует заголовок Authorization');
+    }
+
+    // достаём сам токен
+    const refreshToken = authHeader.split(' ')[1];
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh токен не найден');
+    }
+
+    // возвращаем payload + сам токен
+    return {
+      ...payload,
+      refreshToken,
+    };
   }
 }

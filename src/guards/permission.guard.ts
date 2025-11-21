@@ -24,32 +24,30 @@ export class PermissionsGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    // 🧩 Получаем посты пользователя
-    const posts: PostReadDto[] = request.user?.posts;
+    // 🧩 Получаем посты пользователя: сначала из request.user, затем из body
+    const posts: PostReadDto[] =
+      request.user?.posts || request.body?.posts || [];
+
     if (!posts || posts.length === 0) {
       throw new ForbiddenException('У пользователя нет назначенных постов');
     }
 
-    // 🧩 Определяем organizationId (из params | query | headers)
+    // 🧩 Определяем organizationId (params → query → headers → body)
     const organizationId: string =
-      request.params.organizationId ||
-      request.query.organizationId ||
-      request.headers['x-organization-id'];
+      request.params?.organizationId ||
+      request.query?.organizationId ||
+      request.headers['x-organization-id'] ||
+      request.body?.organizationId;
 
-    console.log("OrganizationId", organizationId);
-    
+    console.log('OrganizationId', organizationId);
+
     // 🧩 Определяем module и action из декораторов
-    const module: Modules = this.reflector.get<Modules>(
-      'module',
-      context.getHandler(),
-    );
-    const action: Actions = this.reflector.get<Actions>(
-      'action',
-      context.getHandler(),
-    );
- console.log("Module", module);
-  console.log("Action", action);
-   
+    const module: Modules = this.reflector.get<Modules>('module', context.getHandler());
+    const action: Actions = this.reflector.get<Actions>('action', context.getHandler());
+
+    console.log('Module', module);
+    console.log('Action', action);
+
     if (!module || !action) {
       throw new ForbiddenException('Модуль или действие не указаны');
     }
@@ -59,51 +57,33 @@ export class PermissionsGuard implements CanActivate {
       return action === Actions.READ;
     }
 
-
     console.log('=== ALL USER POSTS ===');
-    console.log(JSON.stringify(posts, null, 2));  
+    console.log(JSON.stringify(posts, null, 2));
 
-    // 🧩 Фильтруем посты по организации (с проверкой наличия organization)
+    // 🧩 Фильтруем посты по организации (с проверкой наличия organization и неархивные)
     const orgPosts = posts.filter(
-      (post) =>
-        post.organization &&
-        post.organization.id === organizationId &&
-        !post.isArchive,
+      (post) => post.organization && post.organization.id === organizationId && !post.isArchive,
     );
+
     console.log('=== FILTERED ORG POSTS ===');
     console.log(JSON.stringify(orgPosts, null, 2));
 
-    console.log(
-      `${PermissionsGuard.name} -> canActivate -> organizationId:`,
-      organizationId,
-    );
-
-    console.log(
-      `${PermissionsGuard.name} -> canActivate -> post.organization.id list:`,
-      posts.map((p) => p.organization?.id || null),
-    );
     // 🧩 Если нет постов в этой организации — разрешаем только чтение
     if (orgPosts.length === 0) {
-      this.logger.debug(
-        `Нет постов пользователя в организации ${organizationId}`,
-      );
+      this.logger.debug(`Нет постов пользователя в организации ${organizationId}`);
       return action === Actions.READ;
     }
 
     // 🧩 Проверяем права по каждому посту
     for (const post of orgPosts) {
       if (!post.role) continue; // если роль не подгружена
-      if (post.role.roleName === Roles.OWNER) {
-        return true; // OWNER — полный доступ
-      }
+      if (post.role.roleName === Roles.OWNER) return true; // OWNER — полный доступ
 
-      const roleSetting = await this.roleSettingService.findByRoleAndModule(
-        post.role.id,
-        module,
-      );
+      const roleSetting: RoleSettingReadDto =
+        await this.roleSettingService.findByRoleAndModule(post.role.id, module);
 
       if (this.checkPermission(roleSetting, module, action)) {
-        console.log("RoleSetting",roleSetting," module",module,"action",action);
+        console.log('RoleSetting', roleSetting, 'module', module, 'action', action);
         return true;
       }
     }
@@ -129,7 +109,7 @@ export class PermissionsGuard implements CanActivate {
       case Actions.UPDATE:
         return roleSettings.can_update;
       case Actions.DELETE:
-        return roleSettings.can_update; // или отдельный can_delete
+        return roleSettings.can_update; 
       default:
         return false;
     }

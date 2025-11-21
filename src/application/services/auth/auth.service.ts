@@ -11,7 +11,6 @@ import { ReadUserDto } from 'src/contracts/user/read-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UserVkAuthDto } from 'src/contracts/user/user-vkauth-dto';
 import { JwtPayloadInterface } from 'src/utils/jwt-payload.interface';
-import { User } from 'src/domains/user.entity';
 import { CreateRefreshSessionDto } from 'src/contracts/refreshSession/create-refreshSession.dto';
 import { RefreshService } from '../refreshSession/refresh.service';
 import { UserTgAuthDto } from 'src/contracts/user/user-tgauth-dto';
@@ -33,23 +32,45 @@ export class AuthService {
     @Inject('winston') private readonly logger: Logger,
   ) {}
 
+  // ============================
+  //       VALIDATE USER
+  // ============================
   async validateUser(payload: JwtPayloadInterface): Promise<ReadUserDto> {
-    let user = await this.cacheService.get<ReadUserDto>(`user:${payload.id}`);
-    if (user === null) {
-      user = await this.usersService.findOne(payload.id, ['account',
+    try {
+      let cached = await this.cacheService.get<ReadUserDto>(
+        `user:${payload.id}`,
+      );
+
+      if (cached) return cached;
+
+      const user = await this.usersService.findOne(payload.id, [
+        'account',
         'organization',
         'posts',
         'posts.role',
-        'posts.organization',]);
+        'posts.organization',
+      ]);
+
+      if (!user) {
+        throw new UnauthorizedException('Пользователь не найден');
+      }
+
       await this.cacheService.set<ReadUserDto>(
         `user:${user.id}`,
         user,
         1860000,
       );
+
+      return user;
+    } catch (err) {
+      this.logger.error(err);
+      throw new UnauthorizedException('Ошибка авторизации');
     }
-    return user;
   }
 
+  // ============================
+  //       VK AUTH
+  // ============================
   async authenticateVK(
     auth: ReadUserDto,
     ip: string,
@@ -58,15 +79,13 @@ export class AuthService {
   ): Promise<{ _user: UserVkAuthDto; refreshTokenId: string }> {
     try {
       const user = await this.usersService.findOne(auth.id);
-      if (!user) {
-        throw new BadRequestException();
-      }
+      if (!user) throw new BadRequestException();
 
       const newSession: CreateRefreshSessionDto = {
-        user_agent: user_agent,
-        fingerprint: fingerprint,
-        ip: ip,
-        expiresIn: Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60, // Время жизни сессии в секундах (например, 60 дней),
+        user_agent,
+        fingerprint,
+        ip,
+        expiresIn: Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60, // 60 дней
         refreshToken: await this.jwtService.signAsync(
           { id: user.id },
           {
@@ -76,7 +95,9 @@ export class AuthService {
         ),
         user: auth,
       };
+
       const _newSessionId = await this.refreshService.create(newSession);
+
       const _user: UserVkAuthDto = {
         id: user.id,
         vk_id: user.vk_id,
@@ -93,12 +114,9 @@ export class AuthService {
         ),
       };
 
-      return { _user: _user, refreshTokenId: _newSessionId };
+      return { _user, refreshTokenId: _newSessionId };
     } catch (err) {
       this.logger.error(err);
-      if (err instanceof BadRequestException) {
-        throw err;
-      }
       throw new InternalServerErrorException('Ошибка при входе через ВК!');
     }
   }
@@ -114,20 +132,18 @@ export class AuthService {
         process.env.NODE_ENV === 'prod'
           ? process.env.API_HOST
           : process.env.API_LOCAL;
+
       return this.httpService
-        .post(
-          `https://id.vk.com/oauth2/auth`,
-          {
-            grant_type: 'authorization_code',
-            code_verifier: auth.code_verifier,
-            redirect_uri: host,
-            code: auth.code,
-            client_id: VKDATA.client_id,
-            client_secret: VKDATA.client_secret,
-            device_id: auth.device_id,
-            state: auth.state,
-          },
-        )
+        .post(`https://id.vk.com/oauth2/auth`, {
+          grant_type: 'authorization_code',
+          code_verifier: auth.code_verifier,
+          redirect_uri: host,
+          code: auth.code,
+          client_id: VKDATA.client_id,
+          client_secret: VKDATA.client_secret,
+          device_id: auth.device_id,
+          state: auth.state,
+        })
         .toPromise();
     } catch (err) {
       this.logger.error(err);
@@ -141,47 +157,44 @@ export class AuthService {
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
       };
+
       return this.httpService
         .post(`https://id.vk.com/oauth2/user_info`, {
           client_id: VKDATA.client_id,
-          access_token: access_token,
+          access_token,
         })
         .toPromise();
     } catch (err) {
       this.logger.error(err);
-      throw new InternalServerErrorException(
-        'Ошибка при получении данных о пользователе ВК!',
-      );
+      throw new InternalServerErrorException('Ошибка при получении данных ВК!');
     }
   }
 
+  // ============================
+  //       TOKENS UPDATE
+  // ============================
   async updateTokens(
     fingerprint: string,
     refreshTokenId: string,
   ): Promise<{ newRefreshTokenId: string; newAccessToken: string }> {
     try {
-      const session = await this.refreshService.findOneByIdAndFingerprint(
-        String(refreshTokenId),
-        String(fingerprint),
-      );
+      const session =
+        await this.refreshService.findOneByIdAndFingerprint(
+          String(refreshTokenId),
+          String(fingerprint),
+        );
 
       if (!session) {
-        this.logger.info(
-          `Попытка обновления токенов с fingerprint: ${fingerprint} и refreshTokenId: ${refreshTokenId}`,
-        );
         await this.refreshService.remove(refreshTokenId);
-        throw new UnauthorizedException(
-          'Войдите в свой аккаунт для дальнейшей работы!',
-        );
+        throw new UnauthorizedException('Нужно войти снова!');
       }
-      const currentTime = Math.floor(Date.now() / 1000);
-      const isExpired = currentTime > session.expiresIn;
-      if (isExpired) {
+
+      const now = Math.floor(Date.now() / 1000);
+      if (now > session.expiresIn) {
         await this.refreshService.remove(refreshTokenId);
-        throw new UnauthorizedException(
-          'Ваша сессия истекла, пожалуйста, войдите еще раз в свой аккаунт.',
-        );
+        throw new UnauthorizedException('Сессия истекла!');
       }
+
       const newSession: CreateRefreshSessionDto = {
         user_agent: session.user_agent,
         fingerprint: session.fingerprint,
@@ -198,67 +211,53 @@ export class AuthService {
       };
 
       await this.refreshService.remove(session.id);
-
       const newSessionId = await this.refreshService.create(newSession);
 
-      const _newAccessToken = await this.jwtService.signAsync(
+      const newAccessToken = await this.jwtService.signAsync(
         { id: newSession.user.id },
         {
           secret: process.env.JWT_ACCESS_SECRET,
           expiresIn: process.env.JWT_ACCESS_EXPIRESIN,
         },
       );
-      this.logger.info(
-        `${yellow('OK!')} - CREATED SESSION WITH ID: ${newSessionId} - Создана сессия!`,
-      );
-      return {
-        newRefreshTokenId: newSessionId,
-        newAccessToken: _newAccessToken,
-      };
+
+      return { newRefreshTokenId: newSessionId, newAccessToken };
     } catch (err) {
       this.logger.error(err);
-      if (err instanceof UnauthorizedException) {
-        throw err;
-      }
-
       throw new InternalServerErrorException(
-        'Ой, что - то пошло не так при обновлении токенов!',
+        'Ошибка при обновлении токенов',
       );
     }
   }
 
   async logout(fingerprint: string, refreshTokenId: string): Promise<void> {
     try {
-      const session = await this.refreshService.findOneByIdAndFingerprint(
-        String(refreshTokenId),
-        String(fingerprint),
-      );
+      const session =
+        await this.refreshService.findOneByIdAndFingerprint(
+          String(refreshTokenId),
+          String(fingerprint),
+        );
+
       if (!session) {
         await this.refreshService.remove(refreshTokenId);
-        throw new UnauthorizedException(
-          'Войдите в свой аккаунт для дальнейшей работы!',
-        );
+        throw new UnauthorizedException('Нужна повторная авторизация');
       }
-      const currentTime = Math.floor(Date.now() / 1000);
-      const isExpired = currentTime > session.expiresIn;
-      if (isExpired) {
-        throw new UnauthorizedException(
-          'Пожалуйста, войдите еще раз в свой аккаунт.',
-        );
+
+      const now = Math.floor(Date.now() / 1000);
+      if (now > session.expiresIn) {
+        throw new UnauthorizedException('Сессия истекла');
       }
+
       await this.refreshService.remove(session.id);
     } catch (err) {
       this.logger.error(err);
-      if (err instanceof UnauthorizedException) {
-        throw err;
-      }
-
-      throw new InternalServerErrorException(
-        'Ой, что - то пошло не так при обновлении токенов!',
-      );
+      throw new InternalServerErrorException('Ошибка при logout');
     }
   }
 
+  // ============================
+  //       TG AUTH
+  // ============================
   async authenticateTG(
     userId: string,
     ip: string,
@@ -267,15 +266,13 @@ export class AuthService {
   ): Promise<{ _user: UserTgAuthDto; refreshTokenId: string }> {
     try {
       const user = await this.usersService.findOne(userId);
-      if (!user) {
-        throw new BadRequestException();
-      }
+      if (!user) throw new BadRequestException();
 
       const newSession: CreateRefreshSessionDto = {
-        user_agent: user_agent,
-        fingerprint: fingerprint,
-        ip: ip,
-        expiresIn: Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60, // Время жизни сессии в секундах (например, 60 дней),
+        user_agent,
+        fingerprint,
+        ip,
+        expiresIn: Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60,
         refreshToken: await this.jwtService.signAsync(
           { id: user.id },
           {
@@ -283,10 +280,11 @@ export class AuthService {
             expiresIn: process.env.JWT_REFRESH_EXPIRESIN,
           },
         ),
-        user: user,
+        user,
       };
-      console.log(`${JSON.stringify(newSession)}`);
+
       const _newSessionId = await this.refreshService.create(newSession);
+
       const _user: UserTgAuthDto = {
         id: user.id,
         token: await this.jwtService.signAsync(
@@ -298,13 +296,10 @@ export class AuthService {
         ),
       };
 
-      return { _user: _user, refreshTokenId: _newSessionId };
+      return { _user, refreshTokenId: _newSessionId };
     } catch (err) {
       this.logger.error(err);
-      if (err instanceof BadRequestException) {
-        throw err;
-      }
-      throw new InternalServerErrorException('Ошибка при входе черет ТГ!');
+      throw new InternalServerErrorException('Ошибка при входе ТГ');
     }
   }
 
@@ -312,15 +307,19 @@ export class AuthService {
     fingerprint: string,
     refreshTokenId: string,
   ): Promise<{ isExpired: boolean; userId: string }> {
-    const session = await this.refreshService.findOneByIdAndFingerprint(
-      String(refreshTokenId),
-      String(fingerprint),
-    );
-    if (session === null) {
+    const session =
+      await this.refreshService.findOneByIdAndFingerprint(
+        String(refreshTokenId),
+        String(fingerprint),
+      );
+
+    if (!session) {
       return { isExpired: true, userId: null };
     }
-    const currentTime = Math.floor(Date.now() / 1000);
-    const isExpired = currentTime > session.expiresIn;
-    return { isExpired: isExpired, userId: session.user.id };
+
+    const now = Math.floor(Date.now() / 1000);
+    const isExpired = now > session.expiresIn;
+
+    return { isExpired, userId: session.user.id };
   }
 }
