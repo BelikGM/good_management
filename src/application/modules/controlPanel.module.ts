@@ -9,6 +9,7 @@ import { ControlPanel } from 'src/domains/controlPanel.entity';
 import { PostModule } from './post.module';
 import { RoleSettingModule } from './roleSetting.module';
 
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([ControlPanel]),

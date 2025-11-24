@@ -32,6 +32,7 @@ import { ConvertGateway } from 'src/gateways/convert.gateway';
 import { PathConvert, TypeConvert } from 'src/domains/convert.entity';
 import { AccessTokenGuard } from 'src/guards/accessToken.guard';
 import { PermissionsGuard } from 'src/guards/permission.guard';
+import { UsersModule } from 'src/application/modules/users.module';
 import { Request as ExpressRequest } from 'express';
 import { ReadUserDto } from 'src/contracts/user/read-user.dto';
 import { ConvertUpdateDto } from 'src/contracts/convert/update-convert.dto';

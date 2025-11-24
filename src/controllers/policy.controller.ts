@@ -43,6 +43,7 @@ import { ActionAccess } from 'src/decorators/action-access.decorator';
 @ApiTags('Policy')
 @ApiBearerAuth('access-token')
 @UseGuards(AccessTokenGuard)
+@UseGuards(PermissionsGuard)
 @Controller('policies')
 export class PolicyController {
   constructor(
@@ -53,6 +54,8 @@ export class PolicyController {
   ) { }
 
   @Get(':organizationId')
+  @ModuleAccess(Modules.POLICY)
+  @ActionAccess(Actions.READ)
   @ApiOperation({ summary: 'Все политики в организации' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -97,7 +100,6 @@ export class PolicyController {
 
 
   @Patch(':policyId/update')
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POLICY)
   @ActionAccess(Actions.UPDATE)
   @ApiOperation({ summary: 'Обновить политику по Id' })
@@ -181,7 +183,6 @@ export class PolicyController {
   }
 
   @Get(':policyId/policy')
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POLICY)
   @ActionAccess(Actions.READ)
   @ApiOperation({ summary: 'Получить политику по ID' })
@@ -213,8 +214,6 @@ export class PolicyController {
   }
 
   @Post('new')
-
-  @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POLICY)
   @ActionAccess(Actions.CREATE)
   @ApiOperation({ summary: 'Создать политику' })
