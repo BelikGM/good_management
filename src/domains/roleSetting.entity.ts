@@ -22,7 +22,7 @@ export enum Modules {
   CONTROL_PANEL = 'control_panel'
 }
 
-export enum Actions {
+export enum   Actions {
   READ = 'read',
   CREATE = 'create',
   UPDATE = 'update',

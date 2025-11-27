@@ -76,29 +76,43 @@ export class TargetController {
       'organization',
     ]);
     const userPostsIds = userPosts.map((post) => post.id);
-    const [personalTargets, orderTargets, projectTargets, sendedTargets] = await Promise.all([
+
+    const [
+      personalTargets,
+      receivedOrderTargets,
+      projectTargets,
+      sendedOrderTargets,
+    ] = await Promise.all([
       this.targetService.findAllPersonalForUserPosts(userPostsIds, false, [
         'policy',
         'attachmentToTargets.attachment',
       ]),
+
+      // ✔ приказы, присланные мне
       this.targetService.findAllOrdersForUserPosts(userPostsIds, false, [
         'convert.host.user',
         'attachmentToTargets.attachment',
       ]),
+
       this.targetService.findAllFromProjectsForUserPosts(userPostsIds, false),
+
+      // ✔ приказы, которые я отправил другим
       this.targetService.findSendedTargets(userPostsIds, false, [
         'convert.host.user',
         'attachmentToTargets.attachment',
-      ])
+      ]),
     ]);
+
     return {
-      userPosts: userPosts,
-      personalTargets: personalTargets,
-      ordersTargets: orderTargets,
-      projectTargets: projectTargets,
-      sendedTargets: sendedTargets
+      userPosts,
+      personalTargets,
+      // ✔ объединяем входящие + исходящие приказы
+      ordersTargets: [...receivedOrderTargets, ...sendedOrderTargets],
+      projectTargets,
+      sendedTargets: sendedOrderTargets,
     };
   }
+
 
   @Get('archive')
   @ApiOperation({ summary: 'Личные задачи, задачи из проектов и приказы' })

@@ -393,6 +393,46 @@ private mapPostToDto(post: Post): PostReadDto {
     }
   }
 
+  
+  async findContactsFromOtherOrganizations(
+    myPostIds: string[],
+    currentOrganizationId: string,
+  ): Promise<any[]> {
+    try {
+      const qb = this.postRepository
+        .createQueryBuilder('post')
+        .leftJoin('post.user', 'user')
+        .innerJoin('post.convertToPosts', 'ctp') 
+        .innerJoin('ctp.convert', 'c') 
+        .where('post.organizationId != :orgId', { orgId: currentOrganizationId })
+        .andWhere('post.id NOT IN (:...myPostIds)', { myPostIds })
+        .andWhere('c.convertStatus = true')
+        .andWhere(
+          new Brackets(qb => {
+            qb.where(`c.pathOfPosts && ARRAY[:...myPostIds]::uuid[]`)
+              .orWhere(`c.activePostId IN (:...myPostIds)`);
+          }),
+        )
+        .select([
+          'post.id AS "id"',
+          'post.postName AS "postName"',
+          'post.divisionName AS "divisionName"',
+          'user.id AS "userId"',
+          'user.firstName AS "userFirstName"',
+          'user.lastName AS "userLastName"',
+          'user.telephoneNumber AS "userTelephoneNumber"',
+          'user.avatar_url AS "userAvatar"',
+        ])
+        .groupBy('post.id, user.id');
+
+      return await qb.getRawMany();
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException('Ошибка при получении контактов из других организаций!');
+    }
+  }
+
+
   async findAllWithoutConvertForOrganization(
     organizationId: string,
     postsWithConvertsIds: string[],

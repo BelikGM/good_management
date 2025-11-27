@@ -114,7 +114,7 @@ export class PostController {
   @UseGuards(PermissionsGuard)
   @ModuleAccess(Modules.POST)
   @ActionAccess(Actions.READ)
-  @ApiOperation({ summary: 'Все контакты' })
+  @ApiOperation({ summary: 'Все контакты в организации' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'ОК!',
@@ -184,6 +184,62 @@ export class PostController {
     return {
       postsWithConverts: contactsWithStatus,
       postsWithoutConverts: filteredPostsWithoutConverts,
+    };
+  }
+
+  @Get(':organizationId/contactsFromAllOrganizations')
+  @UseGuards(PermissionsGuard)
+  @ModuleAccess(Modules.POST)
+  @ActionAccess(Actions.READ)
+  @ApiOperation({ summary: 'Все Контакты из разных организаций' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'ОК!',
+    example: findAllContactsExample,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Вы не авторизованы!',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Ошибка сервера!',
+  })
+  @ApiParam({
+    name: 'organizationId',
+    required: true,
+    description: 'Id организации',
+    example: 'bdb6b98b-d036-4878-bb3d-e4b1271aae89',
+  })
+  async findExtendedContacts(
+    @Req() req: ExpressRequest,
+    @Param('organizationId') organizationId: string,
+  ) {
+    const user = req.user as ReadUserDto;
+    const myPostIds = user.posts.map(p => p.id);
+
+    const [
+      innerContactsWithConverts,
+      innerContactsWithoutConverts,
+      externalContacts,
+    ] = await Promise.all([
+      this.postService.findAllContactsInOrganizationForCurrentUser(organizationId, myPostIds),
+      this.postService.findAllWithUserForOrganization(organizationId, user.id, ['user']),
+      this.postService.findContactsFromOtherOrganizations(myPostIds, organizationId),
+    ]);
+
+    // убрать внутренние контакты с конвертами из списка без конвертов
+    const innerConvertIds = innerContactsWithConverts.map(c => c.id);
+    const filteredInnerWithoutConverts = innerContactsWithoutConverts.filter(
+      post => !innerConvertIds.includes(post.id),
+    );
+
+    return {
+      organizationContacts: {
+        withConverts: innerContactsWithConverts,
+        withoutConverts: filteredInnerWithoutConverts,
+      },
+      externalContacts,
     };
   }
 
