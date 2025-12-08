@@ -47,26 +47,26 @@ export const winstonConfig = {
   ),
   transports: [
     new transports.Console({
-      format: combine(
-        colorize({ all: true }),
-        align(),
-        printf(
-          (info) =>
-            `[${blue(info.timestamp)}]  ${info.level}:  ${bold(
-              yellow(
-                info.status
-                  ? info.status
-                  : info.level.includes('info')
-                    ? 200
-                    : 500,
-              ),
-            )} - ${info.url ? info.url : ''} - ${
-              info.method ? info.method : ''
-            } - ${info.response_time ? info.response_time : ''} - ${info.message} ---------------- \n 
-            ${info.stack ? info.stack : 'no stack trace'} \n`,
+  format: combine(
+    colorize({ all: true }),
+    align(),
+    printf((info) => {
+      // Приводим переменные к типу 'any', чтобы избавиться от ошибки TS2345
+      const level = info.level as any;
+      const status = info.status as any;
+
+      return `[${blue(String(info.timestamp))}]  ${level}:  ${bold(
+        yellow(
+          status
+            ? status
+            : level.includes('info')
+            ? 200
+            : 500,
         ),
-      ),
+      )} - ${info.url ? info.url : ''} - ${info.method ? info.method : ''} - ${info.response_time ? info.response_time : ''} - ${info.message} ---------------- \n${info.stack ? info.stack : 'no stack trace'} \n`;
     }),
+  ),
+}), 
     combinedFileRotateTransport,
     errorFileRotateTransport,
     infoFileRotateTransport,

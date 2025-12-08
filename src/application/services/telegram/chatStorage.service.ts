@@ -2,18 +2,21 @@
 
 import { Injectable } from '@nestjs/common';
 import { Telegraf } from 'telegraf';
+export interface ChatInfo {
+  token?: string;
+  clientId?: string;
+  messages?: number[]; // теперь хранит сообщения бота
+}
 
 @Injectable()
 export class ChatStorageService {
-  private chats: Map<number | '', any> = new Map();
+  private chats: Map<number | '', ChatInfo> = new Map();
 
-  constructor(private readonly bot: Telegraf) {}
-
-  setChatInfo(chatId: number | '', data: any) {
+  setChatInfo(chatId: number | '', data: ChatInfo) {
     this.chats.set(chatId, data);
   }
 
-  getChatInfo(chatId: number | ''): any | undefined {
+  getChatInfo(chatId: number | ''): ChatInfo | undefined {
     return this.chats.get(chatId);
   }
 
@@ -27,5 +30,12 @@ export class ChatStorageService {
 
   clearChatById(chatId: number | '') {
     this.chats.delete(chatId);
+  }
+
+  addMessageId(chatId: number | '', messageId: number) {
+    const chat = this.chats.get(chatId) || { messages: [] };
+    if (!chat.messages) chat.messages = [];
+    chat.messages.push(messageId);
+    this.chats.set(chatId, chat);
   }
 }
