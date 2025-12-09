@@ -31,7 +31,6 @@ services:
       - rabbitmq
       - redis
     volumes:
-      - ./src:/app/src
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     user: "0:0"  

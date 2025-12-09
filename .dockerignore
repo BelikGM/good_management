@@ -1,0 +1,56 @@
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+dist
+build
+
+# Environment files
+.env
+.env.local
+.env.dev
+.env.prod
+.env.test
+
+# Docker / Compose local data
+docker-compose.yml
+Dockerfile*
+
+# Logs
+logs/
+*.log
+
+# OS/IDE garbage
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Local Postgres data — ЭТО ОБЯЗАТЕЛЬНО
+pgdata
+postgres
+pg_data
+database
+db
+data
+
+# Upload directories
+uploads
+upload
+public/uploads
+
+# Cache
+.cache
+.temp
+tmp
+
+# Tests output
+coverage
+jest-cache
