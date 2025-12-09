@@ -1,6 +1,7 @@
 import {
   Controller,
-  Post,
+  Post, Delete,
+  Param,
   UseInterceptors,
   UploadedFile,
   HttpStatus,
@@ -17,6 +18,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiTags,
+  ApiParam
 } from '@nestjs/swagger';
 import { AccessTokenGuard } from 'src/guards/accessToken.guard';
 import { ImageValidationPipe } from 'src/validators/pipes/imageValidationPipe';
@@ -24,7 +26,9 @@ import { AttachmentService } from 'src/application/services/attachment/attachmen
 import { AttachmentCreateDto } from 'src/contracts/attachment/create-attachment.dto';
 import { Attachment } from 'src/domains/attachment.entity';
 import { FileValidationPipe } from 'src/validators/pipes/fileValidationPipe';
-
+import * as fs from 'fs';
+import * as path from 'path';
+import { File } from 'src/domains/file.entity';
 @ApiTags('File')
 @ApiBearerAuth('access-token')
 @UseGuards(AccessTokenGuard)
@@ -148,4 +152,37 @@ export class FileUploadController {
     );
     return createdAttachments;
   }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Удаление файла или вложения по ID' })
+  @ApiParam({ name: 'id', required: true, description: 'ID файла или вложения' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Файл удалён' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Файл не найден' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Вы не авторизованы!' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Ошибка сервера!' })
+  async deleteAny(@Param('id') id: string) {
+    // Ищем сначала файл
+    const fileEntity = await this.fileService.findOne(id);
+    if (fileEntity) {
+      const fullPath = path.join(process.cwd(), fileEntity.path);
+      try { if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath); } catch (err) { console.error(err); }
+      await this.fileService.delete(id);
+      return { message: 'Файл удалён' };
+    }
+
+    // Ищем вложение
+    const attachmentEntity = await this.attachmentService.findOne(id);
+    if (attachmentEntity) {
+      const fullPath = path.join(process.cwd(), attachmentEntity.attachmentPath);
+      try { if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath); } catch (err) { console.error(err); }
+      await this.attachmentService.delete(id);
+      return { message: 'Файл удалён' };
+    }
+
+    return { message: 'Файл не найден' };
+  }
+
+
+
+
 }

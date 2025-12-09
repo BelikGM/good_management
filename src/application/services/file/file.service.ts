@@ -31,4 +31,13 @@ export class FileService {
       throw new InternalServerErrorException('Ошибка при создании файла!');
     }
   }
+  
+    async findOne(id: string): Promise<File | null> {
+    return await this.fileRepository.findOne({ where: { id } });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.fileRepository.delete(id);
+  }
+
 }

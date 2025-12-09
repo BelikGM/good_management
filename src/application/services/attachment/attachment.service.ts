@@ -115,4 +115,23 @@ export class AttachmentService {
       stream.on('error', (error) => reject(error));
     });
   }
+
+  async findOne(id: string): Promise<Attachment | null> {
+    try {
+      return await this.attachmentRepository.findOne({ where: { id } });
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException('Ошибка при получении вложения!');
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    try {
+      await this.attachmentRepository.delete(id);
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException('Ошибка при удалении вложения!');
+    }
+  }
+
 }
