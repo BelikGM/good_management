@@ -17,7 +17,8 @@ export class ProjectReadDto {
   updatedAt: Date;
   organization: Organization;
   targets: Target[];
-  strategy: Strategy;
+  strategy?: Strategy;
+  strategyId?: string;
   account: Account;
   postCreator: Post;
 }

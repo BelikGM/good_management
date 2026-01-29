@@ -10,6 +10,8 @@ import {
   Query,
   Req,
   UseGuards,
+  BadRequestException,
+  NotFoundException
 } from '@nestjs/common';
 
 import {
@@ -96,7 +98,7 @@ export class ProjectController {
     @Param('organizationId') organizationId: string,
   ): Promise<ProjectReadDto[]> {
     return await this.projectService.findAllForOrganization(organizationId, [
-      'targets',
+      'targets', 'strategy'
     ]);
   }
 
@@ -369,18 +371,24 @@ export class ProjectController {
   async update(
     @Req() req: ExpressRequest,
     @Param('projectId') projectId: string,
-    @Query('holderProductPostId') holderProductPostId: string,
     @Body() projectUpdateDto: ProjectUpdateDto,
+    @Query('holderProductPostId') holderProductPostId?: string,
   ): Promise<{ id: string }> {
     const user = req.user as ReadUserDto;
     const userPost = user.posts.find((post) => post.isDefault);
+    if (!userPost) {
+       throw new BadRequestException('У пользователя нет default post');
+     }
     const start = new Date();
     const convertCreateDtos: ConvertCreateDto[] = [];
     const convertUpdateDtos: ConvertUpdateDto[] = [];
     if (holderProductPostId) {
       const senderPost =
         await this.postService.findOneById(holderProductPostId);
-      if (projectUpdateDto.targetCreateDtos.length > 0) {
+        if (!senderPost) {
+           throw new NotFoundException('Пост-отправитель не найден');
+      }
+      if (projectUpdateDto.targetCreateDtos?.length > 0) {
         const convertCreationForTargetCreatePromises =
           projectUpdateDto.targetCreateDtos.map(async (target) => {
             const convertCreateDto = new ConvertCreateDto();
@@ -415,7 +423,7 @@ export class ProjectController {
           });
         await Promise.all(convertCreationForTargetCreatePromises);
       }
-      if (projectUpdateDto.targetUpdateDtos.length > 0) {
+      if (projectUpdateDto.targetUpdateDtos?.length > 0) {
         const convertUpdationForTargetUpdatePromises =
           projectUpdateDto.targetUpdateDtos.map(async (target) => {
             const isProductTarget = target.type === TargetType.PRODUCT;

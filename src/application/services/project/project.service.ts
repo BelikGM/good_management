@@ -52,7 +52,7 @@ export class ProjectService {
         updatedAt: project.updatedAt,
         organization: project.organization,
         targets: project.targets,
-        strategy: project.strategy,
+        strategyId: project.strategy?.id ?? null,
         account: project.account,
         postCreator: project.postCreator,
       }));
@@ -452,7 +452,7 @@ export class ProjectService {
 
       console.log(convertCreateDtos);
       console.log(convertUpdateDtos);
-      if (updateProjectDto.targetCreateDtos.length > 0) {
+      if (updateProjectDto.targetCreateDtos?.length > 0) {
         for (let i = 0; i < updateProjectDto.targetCreateDtos.length; i++) {
           const targetCreateDto = updateProjectDto.targetCreateDtos[i];
           if (
@@ -469,7 +469,7 @@ export class ProjectService {
 
         await this.targetService.createBulk(updateProjectDto.targetCreateDtos);
       }
-      if (updateProjectDto.targetUpdateDtos.length > 0) {
+      if (updateProjectDto.targetUpdateDtos?.length > 0) {
         for (let i = 0; i < updateProjectDto.targetUpdateDtos.length; i++) {
           const targetUpdateDto = updateProjectDto.targetUpdateDtos[i];
           const convertCreateDtoForTarget = convertCreateDtos.find(
