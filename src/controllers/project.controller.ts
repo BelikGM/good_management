@@ -589,7 +589,7 @@ export class ProjectController {
   ): Promise<{ project: ProjectReadDto; strategies: StrategyReadDto[] }> {
     const project = await this.projectService.findOneById(projectId, [
       'strategy',
-      'targets.targetHolders.post',
+      'targets.targetHolders.post.user',
       'targets.convert',
       'organization',
     ]);
