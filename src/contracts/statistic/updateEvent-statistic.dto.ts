@@ -12,4 +12,5 @@ export class StatisticUpdateEventDto {
   statisticDataUpdateDtos?: StatisticDataUpdateEventDto[] | null;
   statisticDataCreateDtos?: StatisticDataCreateEventDto[] | null;
   accountId: string;
+  normalize?: number | null;
 }
