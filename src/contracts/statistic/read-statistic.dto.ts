@@ -16,4 +16,5 @@ export class StatisticReadDto {
   account: Account;
   panelToStatistics: PanelToStatistic[];
   isActive: boolean;
+  normalize: number | null;
 }
