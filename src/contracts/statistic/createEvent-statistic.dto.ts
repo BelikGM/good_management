@@ -10,4 +10,5 @@ export class StatisticCreateEventDto {
   postId: string;
   accountId: string;
   statisticDataCreateDtos?: StatisticDataCreateEventDto[];
+  normalize?: number | null;
 }
