@@ -25,13 +25,12 @@ services:
     env_file:
       - .env
     ports:
-      - '5002:5002'
+      - '5000:5000'
     depends_on:
       - db
       - rabbitmq
       - redis
     volumes:
-      - ./src:/app/src
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     user: "0:0"  

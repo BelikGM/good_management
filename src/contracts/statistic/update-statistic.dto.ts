@@ -4,15 +4,15 @@ import { Post } from 'src/domains/post.entity';
 import { Type as TypeStatistic } from 'src/domains/statistic.entity';
 import { StatisticDataCreateDto } from '../statisticData/create-statisticData.dto';
 import {
-    ArrayNotEmpty,
-    IsArray,
-    IsBoolean,
-    IsEnum,
-    IsNotEmpty, IsNumber,
-    IsOptional,
-    IsString,
-    IsUUID,
-    ValidateNested,
+  ArrayNotEmpty,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
 } from 'class-validator';
 import { StatisticDataUpdateDto } from '../statisticData/update-statisticData.dto';
 
@@ -123,15 +123,5 @@ export class StatisticUpdateDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-    @ApiProperty({
-        description: 'Значение нормализации',
-        required: false,
-        example: 0.75,
-        type: Number,
-    })
-    @IsOptional()
-    @IsNumber()
-    normalize?: number;
 
 }

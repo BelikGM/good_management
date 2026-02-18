@@ -1,469 +1,457 @@
 import {
-    Inject,
-    Injectable,
-    InternalServerErrorException,
-    NotFoundException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
-import {InjectRepository} from '@nestjs/typeorm';
-import {Statistic} from 'src/domains/statistic.entity';
-import {StatisticRepository} from './repository/statistic.repository';
-import {AccountReadDto} from 'src/contracts/account/read-account.dto';
-import {StatisticReadDto} from 'src/contracts/statistic/read-statistic.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Statistic } from 'src/domains/statistic.entity';
+import { StatisticRepository } from './repository/statistic.repository';
+import { AccountReadDto } from 'src/contracts/account/read-account.dto';
+import { StatisticReadDto } from 'src/contracts/statistic/read-statistic.dto';
 
-import {Logger} from 'winston';
-import {StatisticCreateDto} from 'src/contracts/statistic/create-statistic.dto';
-import {StatisticUpdateDto} from 'src/contracts/statistic/update-statistic.dto';
-import {In} from 'typeorm';
-import {CorrelationType} from 'src/domains/statisticData.entity';
-import {viewTypes} from 'src/constants/extraTypes/statisticViewTypes';
-import {StatisticDataService} from '../statisticData/statisticData.service';
-import {StatisticDataRepository} from '../statisticData/repository/statisticData.repository';
-import {StatisticData} from 'src/domains/statisticData.entity';
-
+import { Logger } from 'winston';
+import { StatisticCreateDto } from 'src/contracts/statistic/create-statistic.dto';
+import { StatisticUpdateDto } from 'src/contracts/statistic/update-statistic.dto';
+import { In } from 'typeorm';
+import { CorrelationType } from 'src/domains/statisticData.entity';
+import { viewTypes } from 'src/constants/extraTypes/statisticViewTypes';
+import { StatisticDataService } from '../statisticData/statisticData.service';
+import { StatisticDataRepository } from '../statisticData/repository/statisticData.repository';
+import { StatisticData } from 'src/domains/statisticData.entity';
 @Injectable()
 export class StatisticService {
-    constructor(
-        @InjectRepository(Statistic)
-        private readonly statisticRepository: StatisticRepository,
-        private readonly statisticDataService: StatisticDataService,
-        private readonly statisticDataRepository: StatisticDataRepository,
-        @Inject('winston') private readonly logger: Logger,
-    ) {
+  constructor(
+    @InjectRepository(Statistic)
+    private readonly statisticRepository: StatisticRepository,
+    private readonly statisticDataService: StatisticDataService,
+    private readonly statisticDataRepository: StatisticDataRepository,
+    @Inject('winston') private readonly logger: Logger,
+  ) { }
+
+  async findAllForAccount(
+    account: AccountReadDto,
+    relations?: string[],
+    isActive?: boolean,
+  ): Promise<StatisticReadDto[]> {
+    try {
+    const where: any = { account: { id: account.id } };
+  
+    if (isActive !== undefined) {
+      where.isActive = isActive;
     }
 
-    async findAllForAccount(
-        account: AccountReadDto,
-        relations?: string[],
-        isActive?: boolean,
-    ): Promise<StatisticReadDto[]> {
-        try {
-            const where: any = {account: {id: account.id}};
+    const statistics = await this.statisticRepository.find({
+      where: where,
+      relations: relations ?? [],
+    });
 
-            if (isActive !== undefined) {
-                where.isActive = isActive;
-            }
+      return statistics.map((statistic) => ({
+        id: statistic.id,
+        type: statistic.type,
+        name: statistic.name,
+        description: statistic.description,
+        createdAt: statistic.createdAt,
+        updatedAt: statistic.updatedAt,
+        statisticDatas: statistic.statisticDatas,
+        post: statistic.post,
+        account: statistic.account,
+        panelToStatistics: statistic.panelToStatistics,
+        isActive: statistic.isActive,
+      }));
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException(
+        'Ошибка при получении всех статистик!',
+      );
+    }
+  }
 
-            const statistics = await this.statisticRepository.find({
-                where: where,
-                relations: relations ?? [],
-            });
+  async findAllForOrganization(
+    organizationId: string,
+    relations?: string[],
+      isActive?: boolean 
+  ): Promise<StatisticReadDto[]> {
+    try {
+         const where: any = { 
+      post: { organization: { id: organizationId } } 
+    };
+    
+    // Добавить фильтрацию по isActive
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
 
-            return statistics.map((statistic) => ({
-                id: statistic.id,
-                type: statistic.type,
-                name: statistic.name,
-                description: statistic.description,
-                createdAt: statistic.createdAt,
-                updatedAt: statistic.updatedAt,
-                statisticDatas: statistic.statisticDatas,
-                post: statistic.post,
-                account: statistic.account,
-                panelToStatistics: statistic.panelToStatistics,
-                isActive: statistic.isActive,
-                normalize: statistic.normalize,
-            }));
-        } catch (err) {
-            this.logger.error(err);
-            throw new InternalServerErrorException(
-                'Ошибка при получении всех статистик!',
-            );
+    const statistics = await this.statisticRepository.find({
+      where: where,
+      relations: relations ?? [],
+    });
+
+      return statistics.map((statistic) => ({
+        isActive: statistic.isActive,
+        id: statistic.id,
+        type: statistic.type,
+        name: statistic.name,
+        description: statistic.description,
+        createdAt: statistic.createdAt,
+        updatedAt: statistic.updatedAt,
+        statisticDatas: statistic.statisticDatas,
+        post: statistic.post,
+        account: statistic.account,
+        panelToStatistics: statistic.panelToStatistics,
+      }));
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException(
+        'Ошибка при получении всех статистик!',
+      );
+    }
+  }
+
+  async findOneById(
+  id: string,
+  relations?: string[],
+  isActive?: boolean, // новый параметр
+): Promise<StatisticReadDto> {
+  try {
+    const where: any = { id: id };
+    
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
+
+    const statistic = await this.statisticRepository.findOne({
+      where: where,
+      relations: relations ?? [],
+    });
+
+    if (!statistic)
+      throw new NotFoundException(`Статистика с ID: ${id} не найдена`);
+    
+    const statisticReadDto: StatisticReadDto = {
+      id: statistic.id,
+      type: statistic.type,
+      name: statistic.name,
+      description: statistic.description,
+      createdAt: statistic.createdAt,
+      updatedAt: statistic.updatedAt,
+      statisticDatas: statistic.statisticDatas,
+      post: statistic.post,
+      account: statistic.account,
+      panelToStatistics: statistic.panelToStatistics,
+      isActive: statistic.isActive, // добавляем новое поле
+    };
+    return statisticReadDto;
+  } catch (err) {
+    this.logger.error(err);
+    if (err instanceof NotFoundException) {
+      throw err;
+    }
+
+    throw new InternalServerErrorException('Ошибка при получении статистики');
+  }
+}
+
+  async findBulk(ids: string[], isActive?: boolean): Promise<StatisticReadDto[]> { // новый параметр
+  try {
+    const where: any = { id: In(ids) };
+    
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
+
+    const statistics = await this.statisticRepository.find({
+      where: where,
+    });
+    
+    const foundIds = statistics.map((statistic) => statistic.id);
+    const missingIds = ids.filter((id) => !foundIds.includes(id));
+    if (missingIds.length > 0) {
+      throw new NotFoundException(
+        `Не найдены статистики с IDs: ${missingIds.join(', ')}`,
+      );
+    }
+    
+    return statistics.map((statistic) => ({
+      id: statistic.id,
+      type: statistic.type,
+      name: statistic.name,
+      description: statistic.description,
+      createdAt: statistic.createdAt,
+      updatedAt: statistic.updatedAt,
+      statisticDatas: statistic.statisticDatas,
+      post: statistic.post,
+      account: statistic.account,
+      panelToStatistics: statistic.panelToStatistics,
+      isActive: statistic.isActive, // добавляем новое поле
+    }));
+  } catch (err) {
+    this.logger.error(err);
+    if (err instanceof NotFoundException) {
+      throw err;
+    }
+
+    throw new InternalServerErrorException('Ошибка при получении статистик');
+  }
+}
+
+  async findAllForControlPanel(
+  controlPanelId: string,
+  pagination: number,
+  datePoint: string,
+  isActive?: boolean,
+  withStatisticData?: boolean, // <-- переименовали
+): Promise<any[]> {
+  try {
+    const queryBuilder = this.statisticRepository
+      .createQueryBuilder('statistic')
+      .leftJoinAndSelect('statistic.panelToStatistics', 'p_t_s')
+      .where('p_t_s.controlPanelId = :controlPanelId', { controlPanelId });
+    
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('statistic.isActive = :isActive', { isActive });
+    }
+
+    queryBuilder.orderBy('p_t_s.orderStatisticNumber', 'ASC');
+
+    const statistics = await queryBuilder.getMany();
+
+    const statisticsWithData = await Promise.all(
+      statistics.map(async (statistic) => {
+        let statisticDataResult: any[] = [];
+
+        if (withStatisticData) {
+          statisticDataResult = await this.statisticDataService.findSeveralWeeks(
+            statistic.id,
+            datePoint,
+            13,
+          );
         }
+
+        return {
+          id: statistic.id,
+          type: statistic.type,
+          name: statistic.name,
+          description: statistic.description,
+          createdAt: statistic.createdAt,
+          updatedAt: statistic.updatedAt,
+          statisticDatas: withStatisticData ? statisticDataResult : [], // <-- проверка по новому флагу
+          post: statistic.post,
+          account: statistic.account,
+          panelToStatistics: statistic.panelToStatistics,
+          isActive: statistic.isActive,
+        };
+      }),
+    );
+
+    return statisticsWithData;
+  } catch (err) {
+    this.logger.error(err);
+    throw new InternalServerErrorException(
+      'Ошибка при получении статистик в панели',
+    );
+  }
+}
+
+  async create(statisticCreateDto: StatisticCreateDto): Promise<Statistic> {
+    try {
+      const statistic = new Statistic();
+      statistic.type = statisticCreateDto.type;
+      statistic.name = statisticCreateDto.name;
+      statistic.description = statisticCreateDto.description;
+      statistic.account = statisticCreateDto.account;
+      statistic.post = statisticCreateDto.post;
+      statistic.isActive = statisticCreateDto.isActive ?? true;
+      const createdStatistic = await this.statisticRepository.save(statistic);
+      return createdStatistic;
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException('Ошибка при создании статистики!');
     }
+  }
 
-    async findAllForOrganization(
-        organizationId: string,
-        relations?: string[],
-        isActive?: boolean
-    ): Promise<StatisticReadDto[]> {
-        try {
-            const where: any = {
-                post: {organization: {id: organizationId}}
-            };
+  async update(
+    _id: string,
+    statisticUpdateDto: StatisticUpdateDto,
+  ): Promise<string> {
+    try {
+      const statistic = await this.statisticRepository.findOne({
+        where: { id: _id },
+      });
+      if (!statistic) {
+        throw new NotFoundException(`Статистика с ID ${_id} не найдена`);
+      }
+      if (statisticUpdateDto.type) statistic.type = statisticUpdateDto.type;
+      if (statisticUpdateDto.name) statistic.name = statisticUpdateDto.name;
+      if (statisticUpdateDto.description)
+        statistic.description = statisticUpdateDto.description;
+      if (statisticUpdateDto.post) statistic.post = statisticUpdateDto.post;
+      if (statisticUpdateDto.isActive !== undefined)
+        statistic.isActive = statisticUpdateDto.isActive;
+      await this.statisticRepository.update(statistic.id, {
+        type: statistic.type,
+        name: statistic.name,
+        description: statistic.description,
+        post: statistic.post,
+        isActive: statistic.isActive,
+      });
+      return statistic.id;
+    } catch (err) {
+      this.logger.error(err);
+      if (err instanceof NotFoundException) {
+        throw err;
+      }
+      throw new InternalServerErrorException(
+        'Ошибка при обновлении статистики',
+      );
+    }
+  }
 
-            // Добавить фильтрацию по isActive
-            if (isActive !== undefined) {
-                where.isActive = isActive;
-            }
+  async findAllWithPeriod(
+    organizationId: string,
+    weeks: number,
+    isActive?: boolean,
+  ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
+    try {
+      const where: any = {
+        post: { organization: { id: organizationId } }
+      };
 
-            const statistics = await this.statisticRepository.find({
-                where: where,
-                relations: relations ?? [],
-            });
+      if (isActive !== undefined) {
+        where.isActive = isActive;
+      }
 
-            return statistics.map((statistic) => ({
-                isActive: statistic.isActive,
-                id: statistic.id,
-                type: statistic.type,
-                name: statistic.name,
-                description: statistic.description,
-                createdAt: statistic.createdAt,
-                updatedAt: statistic.updatedAt,
-                statisticDatas: statistic.statisticDatas,
-                post: statistic.post,
-                account: statistic.account,
-                panelToStatistics: statistic.panelToStatistics,
-                normalize: statistic.normalize,
-            }));
-        } catch (err) {
-            this.logger.error(err);
-            throw new InternalServerErrorException(
-                'Ошибка при получении всех статистик!',
-            );
+      // 1. Получаем все статистики организации (как и раньше)
+      const statistics = await this.statisticRepository.find({
+        where: where,
+        relations: ['post'], // Подгружаем пост, это нужно
+      });
+
+      // Если статистик нет, сразу возвращаем пустой массив
+      if (statistics.length === 0) {
+        return [];
+      }
+
+      // 2. Формируем массив ID всех статистик
+      const statisticIds = statistics.map(stat => stat.id);
+
+      // 3. ВЫЧИСЛЯЕМ ДАТЫ ОДИН РАЗ для всех статистик
+      const datePoint = new Date().toISOString().split('T')[0];
+      const reportDayTyped = new Date(datePoint + 'T00:00:00Z');
+      const weeksAgo = new Date(reportDayTyped);
+      weeksAgo.setDate(weeksAgo.getDate() - ((weeks - 1) * 7));
+
+      // 4. Запрос с джойном
+      const allStatisticData = await this.statisticDataRepository
+        .createQueryBuilder('data')
+        .leftJoinAndSelect('data.statistic', 'statistic') // ← ДОБАВИТЬ ДЖОЙН
+        .where('data.statisticId IN (:...statisticIds)', { statisticIds })
+        .andWhere('data.valueDate <= :reportDayTyped', { reportDayTyped })
+        .andWhere('data.valueDate >= :weeksAgo', { weeksAgo })
+        .andWhere('data.correlationType = :type', { type: CorrelationType.WEEK })
+        .orderBy('data.valueDate', 'ASC')
+        .getMany();
+
+      // 5. Группируем по statistic.id (теперь statistic доступен)
+      const dataGroupedByStatId = {};
+      allStatisticData.forEach(dataItem => {
+        const statId = dataItem.statistic.id; // ← Теперь работает
+        if (!dataGroupedByStatId[statId]) {
+          dataGroupedByStatId[statId] = [];
         }
+        dataGroupedByStatId[statId].push(dataItem);
+      });
+
+      // 6. Собираем финальный результат, сопоставляя статистики и их данные
+      const statisticsWithData = statistics.map(statistic => {
+        // Для каждой статистики ищем её данные в сгруппированном объекте.
+        // Если данных нет - будет пустой массив.
+        const statisticDataForThisStat = dataGroupedByStatId[statistic.id] || [];
+
+        const statisticReadDto: StatisticReadDto = {
+          id: statistic.id,
+          type: statistic.type,
+          name: statistic.name,
+          description: statistic.description,
+          createdAt: statistic.createdAt,
+          updatedAt: statistic.updatedAt,
+          statisticDatas: statistic.statisticDatas, // Это скорее всего всегда пусто, т.к. мы не джойнили 'statisticDatas' в основном запросе. Можно удалить.
+          post: statistic.post,
+          account: statistic.account,
+          panelToStatistics: statistic.panelToStatistics,
+          isActive: statistic.isActive,
+        };
+
+        return {
+          statistic: statisticReadDto,
+          statisticData: statisticDataForThisStat,
+        };
+      });
+
+      return statisticsWithData;
+    } catch (err) {
+      this.logger.error(err);
+      throw new InternalServerErrorException(
+        'Ошибка при получении статистик с данными за период!',
+      );
     }
+  }
+  // async findAllWithPeriod(
+  // organizationId: string,
+  // weeks: number,
+  // isActive?: boolean,
+  // ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
+  // try {
+  //   const where: any = { 
+  //     post: { organization: { id: organizationId } } 
+  //   };
+    
+  //   if (isActive !== undefined) {
+  //     where.isActive = isActive;
+  //   }
 
-    async findOneById(
-        id: string,
-        relations?: string[],
-        isActive?: boolean, // новый параметр
-    ): Promise<StatisticReadDto> {
-        try {
-            const where: any = {id: id};
+  //   // Получаем все статистики организации
+  //   const statistics = await this.statisticRepository.find({
+  //     where: where,
+  //     relations: ['post'],
+  //   });
+  //    const datePoint = new Date().toISOString().split('T')[0];
+  //   // Для каждой статистики получаем данные за указанный период
+  //   const statisticsWithData = await Promise.all(
+  //     statistics.map(async (statistic) => {
+  //       const statisticData = await this.statisticDataService.findSeveralWeeks(
+  //         statistic.id,
+  //         datePoint,
+  //         weeks,
+  //       );
 
-            if (isActive !== undefined) {
-                where.isActive = isActive;
-            }
+  //       const statisticReadDto: StatisticReadDto = {
+  //         id: statistic.id,
+  //         type: statistic.type,
+  //         name: statistic.name,
+  //         description: statistic.description,
+  //         createdAt: statistic.createdAt,
+  //         updatedAt: statistic.updatedAt,
+  //         statisticDatas: statistic.statisticDatas,
+  //         post: statistic.post,
+  //         account: statistic.account,
+  //         panelToStatistics: statistic.panelToStatistics,
+  //         isActive: statistic.isActive,
+  //       };
 
-            const statistic = await this.statisticRepository.findOne({
-                where: where,
-                relations: relations ?? [],
-            });
+  //       return {
+  //         statistic: statisticReadDto,
+  //         statisticData: statisticData,
+  //       };
+  //     }),
+  //   );
 
-            if (!statistic)
-                throw new NotFoundException(`Статистика с ID: ${id} не найдена`);
-
-            const statisticReadDto: StatisticReadDto = {
-                id: statistic.id,
-                type: statistic.type,
-                name: statistic.name,
-                description: statistic.description,
-                createdAt: statistic.createdAt,
-                updatedAt: statistic.updatedAt,
-                statisticDatas: statistic.statisticDatas,
-                post: statistic.post,
-                account: statistic.account,
-                panelToStatistics: statistic.panelToStatistics,
-                isActive: statistic.isActive, // добавляем новое поле
-                normalize: statistic.normalize,
-            };
-            return statisticReadDto;
-        } catch (err) {
-            this.logger.error(err);
-            if (err instanceof NotFoundException) {
-                throw err;
-            }
-
-            throw new InternalServerErrorException('Ошибка при получении статистики');
-        }
-    }
-
-    async findBulk(ids: string[], isActive?: boolean): Promise<StatisticReadDto[]> { // новый параметр
-        try {
-            const where: any = {id: In(ids)};
-
-            if (isActive !== undefined) {
-                where.isActive = isActive;
-            }
-
-            const statistics = await this.statisticRepository.find({
-                where: where,
-            });
-
-            const foundIds = statistics.map((statistic) => statistic.id);
-            const missingIds = ids.filter((id) => !foundIds.includes(id));
-            if (missingIds.length > 0) {
-                throw new NotFoundException(
-                    `Не найдены статистики с IDs: ${missingIds.join(', ')}`,
-                );
-            }
-
-            return statistics.map((statistic) => ({
-                id: statistic.id,
-                type: statistic.type,
-                name: statistic.name,
-                description: statistic.description,
-                createdAt: statistic.createdAt,
-                updatedAt: statistic.updatedAt,
-                statisticDatas: statistic.statisticDatas,
-                post: statistic.post,
-                account: statistic.account,
-                panelToStatistics: statistic.panelToStatistics,
-                isActive: statistic.isActive, // добавляем новое поле
-                normalize: statistic.normalize,
-            }));
-        } catch (err) {
-            this.logger.error(err);
-            if (err instanceof NotFoundException) {
-                throw err;
-            }
-
-            throw new InternalServerErrorException('Ошибка при получении статистик');
-        }
-    }
-
-    async findAllForControlPanel(
-        controlPanelId: string,
-        pagination: number,
-        datePoint: string,
-        isActive?: boolean,
-        withStatisticData?: boolean, // <-- переименовали
-    ): Promise<any[]> {
-        try {
-            const queryBuilder = this.statisticRepository
-                .createQueryBuilder('statistic')
-                .leftJoinAndSelect('statistic.panelToStatistics', 'p_t_s')
-                .where('p_t_s.controlPanelId = :controlPanelId', {controlPanelId});
-
-            if (isActive !== undefined) {
-                queryBuilder.andWhere('statistic.isActive = :isActive', {isActive});
-            }
-
-            queryBuilder.orderBy('p_t_s.orderStatisticNumber', 'ASC');
-
-            const statistics = await queryBuilder.getMany();
-
-            const statisticsWithData = await Promise.all(
-                statistics.map(async (statistic) => {
-                    let statisticDataResult: any[] = [];
-
-                    if (withStatisticData) {
-                        statisticDataResult = await this.statisticDataService.findSeveralWeeks(
-                            statistic.id,
-                            datePoint,
-                            13,
-                        );
-                    }
-
-                    return {
-                        id: statistic.id,
-                        type: statistic.type,
-                        name: statistic.name,
-                        description: statistic.description,
-                        createdAt: statistic.createdAt,
-                        updatedAt: statistic.updatedAt,
-                        statisticDatas: withStatisticData ? statisticDataResult : [], // <-- проверка по новому флагу
-                        post: statistic.post,
-                        account: statistic.account,
-                        panelToStatistics: statistic.panelToStatistics,
-                        isActive: statistic.isActive,
-                        normalize: statistic.normalize,
-                    };
-                }),
-            );
-
-            return statisticsWithData;
-        } catch (err) {
-            this.logger.error(err);
-            throw new InternalServerErrorException(
-                'Ошибка при получении статистик в панели',
-            );
-        }
-    }
-
-    async create(statisticCreateDto: StatisticCreateDto): Promise<Statistic> {
-        try {
-            const statistic = new Statistic();
-            statistic.type = statisticCreateDto.type;
-            statistic.name = statisticCreateDto.name;
-            statistic.description = statisticCreateDto.description;
-            statistic.account = statisticCreateDto.account;
-            statistic.post = statisticCreateDto.post;
-            statistic.isActive = statisticCreateDto.isActive ?? true;
-            statistic.normalize = statisticCreateDto.normalize ?? null;
-            const createdStatistic = await this.statisticRepository.save(statistic);
-            return createdStatistic;
-        } catch (err) {
-            this.logger.error(err);
-            throw new InternalServerErrorException('Ошибка при создании статистики!');
-        }
-    }
-
-    async update(
-        _id: string,
-        statisticUpdateDto: StatisticUpdateDto,
-    ): Promise<string> {
-        try {
-            const statistic = await this.statisticRepository.findOne({
-                where: {id: _id},
-            });
-            if (!statistic) {
-                throw new NotFoundException(`Статистика с ID ${_id} не найдена`);
-            }
-            if (statisticUpdateDto.type) statistic.type = statisticUpdateDto.type;
-            if (statisticUpdateDto.name) statistic.name = statisticUpdateDto.name;
-            if (statisticUpdateDto.description)
-                statistic.description = statisticUpdateDto.description;
-            if (statisticUpdateDto.post) statistic.post = statisticUpdateDto.post;
-            if (statisticUpdateDto.isActive !== undefined)
-                statistic.isActive = statisticUpdateDto.isActive;
-            if ('normalize' in statisticUpdateDto) statistic.normalize = statisticUpdateDto.normalize;
-            await this.statisticRepository.update(statistic.id, {
-                type: statistic.type,
-                name: statistic.name,
-                description: statistic.description,
-                post: statistic.post,
-                isActive: statistic.isActive,
-                normalize: statistic.normalize,
-            });
-            return statistic.id;
-        } catch (err) {
-            this.logger.error(err);
-            if (err instanceof NotFoundException) {
-                throw err;
-            }
-            throw new InternalServerErrorException(
-                'Ошибка при обновлении статистики',
-            );
-        }
-    }
-
-    async findAllWithPeriod(
-        organizationId: string,
-        weeks: number,
-        isActive?: boolean,
-    ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
-        try {
-            const where: any = {
-                post: {organization: {id: organizationId}}
-            };
-
-            if (isActive !== undefined) {
-                where.isActive = isActive;
-            }
-
-            // 1. Получаем все статистики организации (как и раньше)
-            const statistics = await this.statisticRepository.find({
-                where: where,
-                relations: ['post'], // Подгружаем пост, это нужно
-            });
-
-            // Если статистик нет, сразу возвращаем пустой массив
-            if (statistics.length === 0) {
-                return [];
-            }
-
-            // 2. Формируем массив ID всех статистик
-            const statisticIds = statistics.map(stat => stat.id);
-
-            // 3. ВЫЧИСЛЯЕМ ДАТЫ ОДИН РАЗ для всех статистик
-            const datePoint = new Date().toISOString().split('T')[0];
-            const reportDayTyped = new Date(datePoint + 'T00:00:00Z');
-            const weeksAgo = new Date(reportDayTyped);
-            weeksAgo.setDate(weeksAgo.getDate() - ((weeks - 1) * 7));
-
-            // 4. Запрос с джойном
-            const allStatisticData = await this.statisticDataRepository
-                .createQueryBuilder('data')
-                .leftJoinAndSelect('data.statistic', 'statistic') // ← ДОБАВИТЬ ДЖОЙН
-                .where('data.statisticId IN (:...statisticIds)', {statisticIds})
-                .andWhere('data.valueDate <= :reportDayTyped', {reportDayTyped})
-                .andWhere('data.valueDate >= :weeksAgo', {weeksAgo})
-                .andWhere('data.correlationType = :type', {type: CorrelationType.WEEK})
-                .orderBy('data.valueDate', 'ASC')
-                .getMany();
-
-            // 5. Группируем по statistic.id (теперь statistic доступен)
-            const dataGroupedByStatId = {};
-            allStatisticData.forEach(dataItem => {
-                const statId = dataItem.statistic.id; // ← Теперь работает
-                if (!dataGroupedByStatId[statId]) {
-                    dataGroupedByStatId[statId] = [];
-                }
-                dataGroupedByStatId[statId].push(dataItem);
-            });
-
-            // 6. Собираем финальный результат, сопоставляя статистики и их данные
-            const statisticsWithData = statistics.map(statistic => {
-                // Для каждой статистики ищем её данные в сгруппированном объекте.
-                // Если данных нет - будет пустой массив.
-                const statisticDataForThisStat = dataGroupedByStatId[statistic.id] || [];
-
-                const statisticReadDto: StatisticReadDto = {
-                    id: statistic.id,
-                    type: statistic.type,
-                    name: statistic.name,
-                    description: statistic.description,
-                    createdAt: statistic.createdAt,
-                    updatedAt: statistic.updatedAt,
-                    statisticDatas: statistic.statisticDatas, // Это скорее всего всегда пусто, т.к. мы не джойнили 'statisticDatas' в основном запросе. Можно удалить.
-                    post: statistic.post,
-                    account: statistic.account,
-                    panelToStatistics: statistic.panelToStatistics,
-                    isActive: statistic.isActive,
-                    normalize: statistic.normalize,
-                };
-
-                return {
-                    statistic: statisticReadDto,
-                    statisticData: statisticDataForThisStat,
-                };
-            });
-
-            return statisticsWithData;
-        } catch (err) {
-            this.logger.error(err);
-            throw new InternalServerErrorException(
-                'Ошибка при получении статистик с данными за период!',
-            );
-        }
-    }
-
-    // async findAllWithPeriod(
-    // organizationId: string,
-    // weeks: number,
-    // isActive?: boolean,
-    // ): Promise<{ statistic: StatisticReadDto; statisticData: any[] }[]> {
-    // try {
-    //   const where: any = {
-    //     post: { organization: { id: organizationId } }
-    //   };
-
-    //   if (isActive !== undefined) {
-    //     where.isActive = isActive;
-    //   }
-
-    //   // Получаем все статистики организации
-    //   const statistics = await this.statisticRepository.find({
-    //     where: where,
-    //     relations: ['post'],
-    //   });
-    //    const datePoint = new Date().toISOString().split('T')[0];
-    //   // Для каждой статистики получаем данные за указанный период
-    //   const statisticsWithData = await Promise.all(
-    //     statistics.map(async (statistic) => {
-    //       const statisticData = await this.statisticDataService.findSeveralWeeks(
-    //         statistic.id,
-    //         datePoint,
-    //         weeks,
-    //       );
-
-    //       const statisticReadDto: StatisticReadDto = {
-    //         id: statistic.id,
-    //         type: statistic.type,
-    //         name: statistic.name,
-    //         description: statistic.description,
-    //         createdAt: statistic.createdAt,
-    //         updatedAt: statistic.updatedAt,
-    //         statisticDatas: statistic.statisticDatas,
-    //         post: statistic.post,
-    //         account: statistic.account,
-    //         panelToStatistics: statistic.panelToStatistics,
-    //         isActive: statistic.isActive,
-    //       };
-
-    //       return {
-    //         statistic: statisticReadDto,
-    //         statisticData: statisticData,
-    //       };
-    //     }),
-    //   );
-
-    //   return statisticsWithData;
-    // } catch (err) {
-    //   this.logger.error(err);
-    //   throw new InternalServerErrorException(
-    //     'Ошибка при получении статистик с данными за период!',
-    //   );
-    // }
-    // }
+  //   return statisticsWithData;
+  // } catch (err) {
+  //   this.logger.error(err);
+  //   throw new InternalServerErrorException(
+  //     'Ошибка при получении статистик с данными за период!',
+  //   );
+  // }
+  // }
 }
