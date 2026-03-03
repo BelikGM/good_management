@@ -10,6 +10,7 @@ import { OrganizationModule } from './organization.module';
 import { QueueModule } from './queue.module';
 import { PostModule } from './post.module';
 import { ConvertModule } from './convert.module';
+import {MessageModule} from "./message.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ConvertModule } from './convert.module';
     OrganizationModule,
     forwardRef(() => QueueModule),
     ConvertModule,
+      MessageModule
   ],
   controllers: [ProjectController],
   providers: [ProjectService, ProjectRepository],

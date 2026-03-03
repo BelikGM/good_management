@@ -57,6 +57,8 @@ import { ConvertUpdateDto } from 'src/contracts/convert/update-convert.dto';
 import { createPathFromSenderToRecieverPost } from 'src/helpersFunc/createPathFromSenderToRecieverPost';
 import { setConvertPath } from 'src/helpersFunc/setConvertPath';
 import { TypeConvert } from 'src/domains/convert.entity';
+import { MessageService } from 'src/application/services/message/message.service';
+import {ConvertService} from "../application/services/convert/convert.service";
 
 @ApiTags('Project')
 @ApiBearerAuth('access-token')
@@ -64,6 +66,8 @@ import { TypeConvert } from 'src/domains/convert.entity';
 @Controller('projects')
 export class ProjectController {
   constructor(
+      private readonly convertService: ConvertService,
+      private readonly messageService: MessageService,
     private readonly projectService: ProjectService,
     private readonly postService: PostService,
     private readonly strategyService: StrategyService,
@@ -374,6 +378,7 @@ export class ProjectController {
     @Body() projectUpdateDto: ProjectUpdateDto,
     @Query('holderProductPostId') holderProductPostId?: string,
   ): Promise<{ id: string }> {
+      const projectReadDto = await this.projectService.findOneById(projectId);
     const user = req.user as ReadUserDto;
     const userPost = user.posts.find((post) => post.isDefault);
     if (!userPost) {
@@ -413,13 +418,26 @@ export class ProjectController {
               postIdsFromSenderToReciver,
               isCommonDivision,
             );
-            convertCreateDto.convertTheme = target.content;
+            convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
+              convertCreateDto.messageContent = `${projectReadDto.id} ${target.content}`;
             convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
             convertCreateDto.deadline = target.deadline;
             convertCreateDto.convertType = TypeConvert.ORDER;
             convertCreateDto.host = senderPost;
             convertCreateDto.account = user.account;
             convertCreateDtos.push(convertCreateDto);
+
+              const [createdConvert, activePost] = await Promise.all([
+                  this.convertService.create(convertCreateDto),
+                  this.postService.findOneById(convertCreateDto.pathOfPosts[0], ['user']),
+              ]);
+
+              await this.messageService.create({
+                  content: convertCreateDto.messageContent,
+                  postId: convertCreateDto.senderPostId,
+                  convert: createdConvert,
+                  sender: activePost,
+              });
           });
         await Promise.all(convertCreationForTargetCreatePromises);
       }
@@ -456,7 +474,7 @@ export class ProjectController {
                 convertUpdateDto.pathOfPosts = postIdsFromSenderToReciver;
               }
               convertUpdateDto._id = target.convert.id;
-              convertUpdateDto.convertTheme = target.content;
+              convertUpdateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
               convertUpdateDto.deadline = target.deadline;
               convertUpdateDto.host = isProductTarget ? userPost : senderPost;
               convertUpdateDto.targetId = target._id;
@@ -490,7 +508,8 @@ export class ProjectController {
                 postIdsFromSenderToReciver,
                 isCommonDivision,
               );
-              convertCreateDto.convertTheme = target.content;
+              convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
+              convertCreateDto.messageContent = "convertCreateDto.messageContent";
               convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
               convertCreateDto.deadline = target.deadline;
               convertCreateDto.convertType = TypeConvert.ORDER;
@@ -512,7 +531,7 @@ export class ProjectController {
     const updatedProjectId = await this.projectService.update(
       projectId,
       projectUpdateDto,
-      convertCreateDtos,
+      [],
       convertUpdateDtos,
     );
 

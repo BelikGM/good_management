@@ -205,7 +205,7 @@ export class ProjectService {
     try {
       const program = await this.projectRepository.findOne({
         where: { id: id },
-        relations: ['targets.targetHolders.post', 'strategy', 'organization'],
+        relations: [ 'targets.targetHolders.post.user', 'strategy', 'organization'],
       });
       if (!program) throw new NotFoundException(`Проект с ID: ${id} не найден`);
       const programReadDto: ProjectReadDto = {
