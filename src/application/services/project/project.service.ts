@@ -251,6 +251,7 @@ export class ProjectService {
         .leftJoinAndSelect('project.targets', 'target')
         .leftJoinAndSelect('target.targetHolders', 'targetHolder')
         .leftJoinAndSelect('targetHolder.post', 'post')
+        .leftJoinAndSelect('post.user', 'user')
         .where('project.programId = :programId', { programId })
         .andWhere('target.type = :targetType', {
           targetType: TypeTarget.PRODUCT,
