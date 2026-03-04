@@ -509,14 +509,26 @@ export class ProjectController {
                 isCommonDivision,
               );
               convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-              convertCreateDto.messageContent = "convertCreateDto.messageContent";
+              convertCreateDto.messageContent = `${projectReadDto.id} ${target.content}`;
               convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
               convertCreateDto.deadline = target.deadline;
               convertCreateDto.convertType = TypeConvert.ORDER;
               convertCreateDto.host = isProductTarget ? userPost : senderPost;
               convertCreateDto.account = user.account;
               convertCreateDto.targetId = target._id;
-              convertCreateDtos.push(convertCreateDto);
+              // convertCreateDtos.push(convertCreateDto);
+
+                const [createdConvert, activePost] = await Promise.all([
+                    this.convertService.create(convertCreateDto),
+                    this.postService.findOneById(convertCreateDto.pathOfPosts[0], ['user']),
+                ]);
+
+                await this.messageService.create({
+                    content: convertCreateDto.messageContent,
+                    postId: convertCreateDto.senderPostId,
+                    convert: createdConvert,
+                    sender: activePost,
+                });
             }
           });
         await Promise.all(convertUpdationForTargetUpdatePromises);
