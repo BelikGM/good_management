@@ -59,6 +59,7 @@ import { setConvertPath } from 'src/helpersFunc/setConvertPath';
 import { TypeConvert } from 'src/domains/convert.entity';
 import { MessageService } from 'src/application/services/message/message.service';
 import {ConvertService} from "../application/services/convert/convert.service";
+import {ConvertReadDto} from "../contracts/convert/read-convert.dto";
 
 @ApiTags('Project')
 @ApiBearerAuth('access-token')
@@ -385,8 +386,8 @@ export class ProjectController {
        throw new BadRequestException('У пользователя нет default post');
      }
     const start = new Date();
-    const convertCreateDtos: ConvertCreateDto[] = [];
-    const convertUpdateDtos: ConvertUpdateDto[] = [];
+    const convertCreateDtos: any[] = [];
+    const convertUpdateDtos: any[] = [];
     if (holderProductPostId) {
       const senderPost =
         await this.postService.findOneById(holderProductPostId);
@@ -419,17 +420,24 @@ export class ProjectController {
               isCommonDivision,
             );
             convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-              convertCreateDto.messageContent = `${projectReadDto.id} ${target.content}`;
+            convertCreateDto.messageContent = `${projectReadDto.id} ${target.content}`;
             convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
             convertCreateDto.deadline = target.deadline;
             convertCreateDto.convertType = TypeConvert.ORDER;
             convertCreateDto.host = senderPost;
             convertCreateDto.account = user.account;
-            convertCreateDtos.push(convertCreateDto);
+
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
+              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
 
               const [createdConvert, activePost] = await Promise.all([
                   this.convertService.create(convertCreateDto),
-                  this.postService.findOneById(convertCreateDto.pathOfPosts[0], ['user']),
+                  this.postService.findOneById(convertCreateDto?.pathOfPosts[0], ['user']),
               ]);
 
               await this.messageService.create({
@@ -438,6 +446,9 @@ export class ProjectController {
                   convert: createdConvert,
                   sender: activePost,
               });
+
+              convertCreateDtos.push(createdConvert);
+
           });
         await Promise.all(convertCreationForTargetCreatePromises);
       }
@@ -516,11 +527,10 @@ export class ProjectController {
               convertCreateDto.host = isProductTarget ? userPost : senderPost;
               convertCreateDto.account = user.account;
               convertCreateDto.targetId = target._id;
-              // convertCreateDtos.push(convertCreateDto);
 
                 const [createdConvert, activePost] = await Promise.all([
                     this.convertService.create(convertCreateDto),
-                    this.postService.findOneById(convertCreateDto.pathOfPosts[0], ['user']),
+                    this.postService.findOneById(convertCreateDto?.pathOfPosts[0], ['user']),
                 ]);
 
                 await this.messageService.create({
@@ -529,6 +539,8 @@ export class ProjectController {
                     convert: createdConvert,
                     sender: activePost,
                 });
+
+                convertCreateDtos.push(createdConvert);
             }
           });
         await Promise.all(convertUpdationForTargetUpdatePromises);
@@ -540,10 +552,11 @@ export class ProjectController {
       );
       projectUpdateDto.strategy = strategy;
     }
+
     const updatedProjectId = await this.projectService.update(
       projectId,
       projectUpdateDto,
-      [],
+        convertCreateDtos,
       convertUpdateDtos,
     );
 

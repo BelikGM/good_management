@@ -19,11 +19,15 @@ import { Transactional } from 'nestjs-transaction';
 import { ConvertCreateDto } from 'src/contracts/convert/create-convert.dto';
 import { ConvertService } from '../convert/convert.service';
 import { ConvertUpdateDto } from 'src/contracts/convert/update-convert.dto';
+import {MessageService} from "../message/message.service";
+import {PostService} from "../post/post.service";
 
 @Injectable()
 export class ProjectService {
   constructor(
     @InjectRepository(Project)
+    private readonly messageService: MessageService,
+    private readonly postService: PostService,
     private readonly projectRepository: ProjectRepository,
     private readonly targetService: TargetService,
     private readonly convertService: ConvertService,
@@ -51,7 +55,13 @@ export class ProjectService {
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
         organization: project.organization,
-        targets: project.targets,
+          targets: project.targets.map((target) => ({
+              ...target,
+              isExpired: target.deadline
+                  ? new Date(target.deadline) < new Date() &&
+                  target.targetState !== State.FINISHED
+                  : false,
+          })),
         strategyId: project.strategy?.id ?? null,
         account: project.account,
         postCreator: project.postCreator,
@@ -329,8 +339,8 @@ export class ProjectService {
   async update(
     _id: string,
     updateProjectDto: ProjectUpdateDto,
-    convertCreateDtos: ConvertCreateDto[],
-    convertUpdateDtos: ConvertUpdateDto[],
+    convertCreateDtos: any[],
+    convertUpdateDtos: any[],
   ): Promise<string> {
     try {
       const project = await this.projectRepository.findOne({
@@ -451,8 +461,8 @@ export class ProjectService {
       //   ? await this.convertService.createBulkForProject(convertCreateDtos)
       //   : [];
 
-      console.log(convertCreateDtos);
-      console.log(convertUpdateDtos);
+      // console.log(convertCreateDtos);
+      // console.log(convertUpdateDtos);
       if (updateProjectDto.targetCreateDtos?.length > 0) {
         for (let i = 0; i < updateProjectDto.targetCreateDtos.length; i++) {
           const targetCreateDto = updateProjectDto.targetCreateDtos[i];
@@ -460,10 +470,7 @@ export class ProjectService {
             convertCreateDtos.length > 0 &&
             convertCreateDtos[i].pathOfPosts.length > 1
           ) {
-            const createdConvert = await this.convertService.create(
-              convertCreateDtos[i],
-            );
-            targetCreateDto.convert = createdConvert;
+            targetCreateDto.convert = convertCreateDtos[i];
           }
           targetCreateDto.project = project;
         }
@@ -486,7 +493,7 @@ export class ProjectService {
             );
           } else if (
             convertCreateDtos.length > 0 &&
-            convertCreateDtoForTarget.pathOfPosts.length > 1
+            convertCreateDtoForTarget?.pathOfPosts.length > 1
           ) {
             const createdConvert = await this.convertService.create(
               convertCreateDtoForTarget,
