@@ -340,6 +340,7 @@ export class ProjectService {
     _id: string,
     updateProjectDto: ProjectUpdateDto,
     convertCreateDtos: any[],
+    convertCreateForUpdateTargetDtos: any[],
     convertUpdateDtos: any[],
   ): Promise<string> {
     try {
@@ -480,9 +481,10 @@ export class ProjectService {
       if (updateProjectDto.targetUpdateDtos?.length > 0) {
         for (let i = 0; i < updateProjectDto.targetUpdateDtos.length; i++) {
           const targetUpdateDto = updateProjectDto.targetUpdateDtos[i];
-          const convertCreateDtoForTarget = convertCreateDtos.find(
-            (dto) => dto.targetId === targetUpdateDto._id,
-          );
+          // const convertCreateDtoForTarget = convertCreateDtos.find(
+          //   (dto) => dto.targetId === targetUpdateDto._id,
+          // );&&
+            //             convertCreateDtoForTarget?.pathOfPosts.length > 1
           if (targetUpdateDto.convert && convertUpdateDtos.length > 0) {
             const convertToUpdate = convertUpdateDtos.find(
               (dto) => dto.targetId === targetUpdateDto._id,
@@ -492,13 +494,14 @@ export class ProjectService {
               convertToUpdate,
             );
           } else if (
-            convertCreateDtos.length > 0 &&
-            convertCreateDtoForTarget?.pathOfPosts.length > 1
+              convertCreateForUpdateTargetDtos.length > 0
           ) {
-            const createdConvert = await this.convertService.create(
-              convertCreateDtoForTarget,
-            );
-            targetUpdateDto.convert = createdConvert;
+            // const createdConvert = await this.convertService.create(
+            //   convertCreateDtoForTarget,
+            // );
+
+            // targetUpdateDto.convert = createdConvert;
+            targetUpdateDto.convert = convertCreateForUpdateTargetDtos[i];
           }
         }
         await this.targetService.updateBulk(updateProjectDto.targetUpdateDtos);
