@@ -387,6 +387,7 @@ export class ProjectController {
      }
     const start = new Date();
     const convertCreateDtos: any[] = [];
+    const convertCreateForUpdateTargetDtos: any[] = [];
     const convertUpdateDtos: any[] = [];
     if (holderProductPostId) {
       const senderPost =
@@ -420,20 +421,12 @@ export class ProjectController {
               isCommonDivision,
             );
             convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-            convertCreateDto.messageContent = `${projectReadDto.id} ${target.content}`;
+            convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
             convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
             convertCreateDto.deadline = target.deadline;
             convertCreateDto.convertType = TypeConvert.ORDER;
             convertCreateDto.host = senderPost;
             convertCreateDto.account = user.account;
-
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
-              console.log("postIdsFromSenderToReciver = ", postIdsFromSenderToReciver);
 
               const [createdConvert, activePost] = await Promise.all([
                   this.convertService.create(convertCreateDto),
@@ -520,13 +513,15 @@ export class ProjectController {
                 isCommonDivision,
               );
               convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-              convertCreateDto.messageContent = `${projectReadDto.id} ${target.content}`;
+              convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
               convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
               convertCreateDto.deadline = target.deadline;
               convertCreateDto.convertType = TypeConvert.ORDER;
               convertCreateDto.host = isProductTarget ? userPost : senderPost;
               convertCreateDto.account = user.account;
               convertCreateDto.targetId = target._id;
+
+                // convertCreateDtos.push(convertCreateDto);
 
                 const [createdConvert, activePost] = await Promise.all([
                     this.convertService.create(convertCreateDto),
@@ -540,7 +535,7 @@ export class ProjectController {
                     sender: activePost,
                 });
 
-                convertCreateDtos.push(createdConvert);
+                convertCreateForUpdateTargetDtos.push(createdConvert);
             }
           });
         await Promise.all(convertUpdationForTargetUpdatePromises);
@@ -557,6 +552,7 @@ export class ProjectController {
       projectId,
       projectUpdateDto,
         convertCreateDtos,
+        convertCreateForUpdateTargetDtos,
       convertUpdateDtos,
     );
 
