@@ -60,6 +60,8 @@ import { TypeConvert } from 'src/domains/convert.entity';
 import { MessageService } from 'src/application/services/message/message.service';
 import {ConvertService} from "../application/services/convert/convert.service";
 import {ConvertReadDto} from "../contracts/convert/read-convert.dto";
+import { PathConvert } from 'src/domains/convert.entity';
+
 
 @ApiTags('Project')
 @ApiBearerAuth('access-token')
@@ -415,14 +417,17 @@ export class ProjectController {
                 postIdsFromRecieverToTop,
               ).postIdsFromSenderToReciver;
 
-            setConvertPath(
-              convertCreateDto,
-              postIdsFromSenderToReciver,
-              isCommonDivision,
-            );
+            // setConvertPath(
+            //   convertCreateDto,
+            //   postIdsFromSenderToReciver,
+            //   isCommonDivision,
+            // );
+
+            console.log('-------------------   ',[holderProductPostId, target.holderPostId])
+            convertCreateDto.convertPath = PathConvert.DIRECT;
             convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
             convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
-            convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
+            convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
             convertCreateDto.deadline = target.deadline;
             convertCreateDto.convertType = TypeConvert.ORDER;
             convertCreateDto.host = senderPost;
@@ -470,14 +475,15 @@ export class ProjectController {
                     postIdsFromSenderToTop,
                     postIdsFromRecieverToTop,
                   ).postIdsFromSenderToReciver;
-                setConvertPath(
-                  convertUpdateDto,
-                  postIdsFromSenderToReciver,
-                  isCommonDivision,
-                );
-                convertUpdateDto.pathOfPosts = postIdsFromSenderToReciver;
+                // setConvertPath(
+                //   convertUpdateDto,
+                //   postIdsFromSenderToReciver,
+                //   isCommonDivision,
+                // );
+                convertUpdateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
               }
               convertUpdateDto._id = target.convert.id;
+              convertUpdateDto.convertPath = PathConvert.DIRECT;
               convertUpdateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
               convertUpdateDto.deadline = target.deadline;
               convertUpdateDto.host = isProductTarget ? userPost : senderPost;
@@ -507,14 +513,16 @@ export class ProjectController {
                   postIdsFromSenderToTop,
                   postIdsFromRecieverToTop,
                 ).postIdsFromSenderToReciver;
-              setConvertPath(
-                convertCreateDto,
-                postIdsFromSenderToReciver,
-                isCommonDivision,
-              );
+              // setConvertPath(
+              //   convertCreateDto,
+              //   postIdsFromSenderToReciver,
+              //   isCommonDivision,
+              // );
+              console.log('-------------------   ',postIdsFromSenderToReciver)
+              convertCreateDto.convertPath = PathConvert.DIRECT;
               convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
               convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
-              convertCreateDto.pathOfPosts = postIdsFromSenderToReciver;
+              convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
               convertCreateDto.deadline = target.deadline;
               convertCreateDto.convertType = TypeConvert.ORDER;
               convertCreateDto.host = isProductTarget ? userPost : senderPost;
