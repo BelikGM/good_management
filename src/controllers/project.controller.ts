@@ -61,6 +61,7 @@ import { MessageService } from 'src/application/services/message/message.service
 import {ConvertService} from "../application/services/convert/convert.service";
 import {ConvertReadDto} from "../contracts/convert/read-convert.dto";
 import { PathConvert } from 'src/domains/convert.entity';
+import {MessageUpdateDto} from "../contracts/message/update-message.dto";
 
 
 @ApiTags('Project')
@@ -495,6 +496,23 @@ export class ProjectController {
                 convertUpdateDto.convertStatus = false;
               }
               convertUpdateDtos.push(convertUpdateDto);
+
+                console.log("convertUpdateDto._id = ", convertUpdateDto._id)
+
+                const message = await this.messageService.findFirst(convertUpdateDto._id)
+
+
+                console.log("message = ", message)
+
+                const messageUpdateDto = new MessageUpdateDto();
+                messageUpdateDto._id = message.id;
+                messageUpdateDto.content = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
+
+                await this.messageService.update(
+                    messageUpdateDto._id,
+                    messageUpdateDto,
+                );
+
             } else {
               const convertCreateDto = new ConvertCreateDto();
               const [postIdsFromSenderToTop, postIdsFromRecieverToTop] =

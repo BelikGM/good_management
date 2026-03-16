@@ -385,4 +385,38 @@ export class MessageService {
       throw new InternalServerErrorException('Ошибка при обновлении сообщения');
     }
   }
+
+
+    async findFirst(convertId: string, relations?: string[]): Promise<MessageReadDto> {
+        try {
+            const message = await this.messageRepository
+                .createQueryBuilder("message")
+                .where("message.convertId = :convertId", { convertId })
+                .orderBy("message.messageNumber", "ASC")
+                .getOne(); // вернёт первый объект или null, если нет
+
+            if (!message) {
+                throw new NotFoundException(`Сообщение с ID ${convertId} не найдено`);
+            }
+
+            const messageReadDto: MessageReadDto = {
+                id: message.id,
+                content: message.content,
+                messageNumber: message.messageNumber,
+                createdAt: message.createdAt,
+                updatedAt: message.updatedAt,
+                convert: message.convert,
+                sender: message.sender,
+                attachmentToMessages: message.attachmentToMessages,
+                seenStatuses: message.seenStatuses,
+            };
+            return messageReadDto;
+        } catch (err) {
+            this.logger.error(err);
+            throw new InternalServerErrorException(
+                'Ошибка при получении прочитанных сообщений в конверте',
+            );
+        }
+    }
 }
+
