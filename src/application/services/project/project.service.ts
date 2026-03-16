@@ -376,81 +376,94 @@ export class ProjectService {
           .createQueryBuilder('project')
           .leftJoinAndSelect('project.targets', 'targets')
           .where('project.programId = :programId', { programId: project.id })
-          .andWhere((qb) => {
-            const subQuery = qb
-              .subQuery()
-              .select('1')
-              .from('target', 'subTargets')
-              .where('subTargets.projectId = project.id')
-              .andWhere('subTargets.type = :type', { type: TypeTarget.PRODUCT })
-              .andWhere('subTargets.targetState = :state', {
-                state: State.ACTIVE,
-              })
-              .getQuery();
-            return `EXISTS (${subQuery})`;
-          })
+          // .andWhere((qb) => {
+          //   const subQuery = qb
+          //     .subQuery()
+          //     .select('1')
+          //     .from('target', 'subTargets')
+          //     .where('subTargets.projectId = project.id')
+          //     .andWhere('subTargets.type = :type', { type: TypeTarget.PRODUCT })
+          //     .andWhere('subTargets.targetState = :state', {
+          //       state: State.ACTIVE,
+          //     })
+          //     .getQuery();
+          //   return `EXISTS (${subQuery})`;
+          // })
           .getMany();
         console.log(projectsWithCurrentProgram);
-        let activeProjectsWithCurrentProgramIds = projectsWithCurrentProgram
-          .filter((project) =>
-            project.targets.some(
-              (target) =>
-                new Date(target.deadline) > new Date() &&
-                target.targetState === State.ACTIVE &&
-                target.type === TypeTarget.PRODUCT,
-            ),
-          )
-          .map((project) => project.id);
-        console.log(
-          `activeProjectsWithCurrentProgramIds: ${activeProjectsWithCurrentProgramIds}`,
-        );
-        let expiredProjectsWithCurrentProgramIds = projectsWithCurrentProgram
-          .filter((project) =>
-            project.targets.some(
-              (target) =>
-                new Date(target.deadline) < new Date() &&
-                target.targetState === State.ACTIVE &&
-                target.type === TypeTarget.PRODUCT,
-            ),
-          )
-          .map((project) => project.id);
-        console.log(
-          `expiredProjectsWithCurrentProgramIds: ${expiredProjectsWithCurrentProgramIds}`,
-        );
-        if (activeProjectsWithCurrentProgramIds === undefined)
-          activeProjectsWithCurrentProgramIds = [];
-        if (expiredProjectsWithCurrentProgramIds === undefined)
-          expiredProjectsWithCurrentProgramIds = [];
+        // let activeProjectsWithCurrentProgramIds = projectsWithCurrentProgram
+        //   .filter((project) =>
+        //     project.targets.some(
+        //       (target) =>
+        //         new Date(target.deadline) > new Date() &&
+        //         target.targetState === State.ACTIVE &&
+        //         target.type === TypeTarget.PRODUCT,
+        //     ),
+        //   )
+        //   .map((project) => project.id);
+        // console.log(
+        //   `activeProjectsWithCurrentProgramIds: ${activeProjectsWithCurrentProgramIds}`,
+        // );
+        // let expiredProjectsWithCurrentProgramIds = projectsWithCurrentProgram
+        //   .filter((project) =>
+        //     project.targets.some(
+        //       (target) =>
+        //         new Date(target.deadline) < new Date() &&
+        //         target.targetState === State.ACTIVE &&
+        //         target.type === TypeTarget.PRODUCT,
+        //     ),
+        //   )
+        //   .map((project) => project.id);
+        // console.log(
+        //   `expiredProjectsWithCurrentProgramIds: ${expiredProjectsWithCurrentProgramIds}`,
+        // );
+        // if (activeProjectsWithCurrentProgramIds === undefined)
+        //   activeProjectsWithCurrentProgramIds = [];
+        // if (expiredProjectsWithCurrentProgramIds === undefined)
+        //   expiredProjectsWithCurrentProgramIds = [];
 
-        const projectIdsToAdd = updateProjectDto.projectIds.filter(
-          (id) =>
-            !activeProjectsWithCurrentProgramIds.includes(id) &&
-            !expiredProjectsWithCurrentProgramIds.includes(id),
-        );
-        const projectIdsToUpdate = updateProjectDto.projectIds.filter((id) =>
-          activeProjectsWithCurrentProgramIds.includes(id),
-        );
-        const commonArray = activeProjectsWithCurrentProgramIds.concat(
-          expiredProjectsWithCurrentProgramIds,
-        );
-        const projectIdsToDelete = commonArray.filter(
-          (id) => !updateProjectDto.projectIds.includes(id),
-        );
-        console.log(`projectIdsToAdd: ${projectIdsToAdd}`);
-        console.log(`projectIdsToUpdate: ${projectIdsToUpdate}`);
-        console.log(`projectIdsToDelete: ${projectIdsToDelete}`);
+        // const projectIdsToAdd = updateProjectDto.projectIds.filter(
+        //   (id) =>
+        //     !activeProjectsWithCurrentProgramIds.includes(id) &&
+        //     !expiredProjectsWithCurrentProgramIds.includes(id),
+        // );
+        // const projectIdsToUpdate = updateProjectDto.projectIds.filter((id) =>
+        //   activeProjectsWithCurrentProgramIds.includes(id),
+        // );
+        // const commonArray = activeProjectsWithCurrentProgramIds.concat(
+        //   expiredProjectsWithCurrentProgramIds,
+        // );
+        // const projectIdsToDelete = commonArray.filter(
+        //   (id) => !updateProjectDto.projectIds.includes(id),
+        // );
+        //   console.log(`projectIdsToUpdate: ${projectIdsToUpdate}`);
+
+          const allShiftBD = projectsWithCurrentProgram.map((project) => project.id);
+          const allShiftFRONT = updateProjectDto.projectIds;
+
+          const projectIdsToAdd = updateProjectDto.projectIds.filter(
+              (id) =>
+                  !allShiftBD.includes(id)
+          );
+          const projectIdsToDelete = allShiftBD.filter(
+              (id) => !updateProjectDto.projectIds.includes(id),
+          );
+
+          console.log(`projectIdsToAdd: ${projectIdsToAdd}`);
+          console.log(`projectIdsToDelete: ${projectIdsToDelete}`);
+
         if (projectIdsToAdd.length > 0) {
           await this.projectRepository.update(
             { id: In(projectIdsToAdd) },
             { programId: project.id, strategy: project.strategy },
           );
         }
-        if (projectIdsToUpdate.length > 0) {
-          await this.projectRepository.update(
-            { id: In(projectIdsToUpdate) },
-            { strategy: project.strategy },
-          );
-        }
+        // if (projectIdsToUpdate.length > 0) {
+        //   await this.projectRepository.update(
+        //     { id: In(projectIdsToUpdate) },
+        //     { strategy: project.strategy },
+        //   );
+        // }
         if (projectIdsToDelete.length > 0) {
           await this.projectRepository.update(
             { id: In(projectIdsToDelete) },
