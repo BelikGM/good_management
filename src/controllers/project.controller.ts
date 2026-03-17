@@ -482,6 +482,7 @@ export class ProjectController {
                 //   isCommonDivision,
                 // );
                 convertUpdateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
+                convertUpdateDto.activePostId = target.holderPostId;
               }
               convertUpdateDto._id = target.convert.id;
               convertUpdateDto.convertPath = PathConvert.DIRECT;
