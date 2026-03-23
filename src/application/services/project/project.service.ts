@@ -35,6 +35,20 @@ export class ProjectService {
         private dataSource: DataSource,
     ) {
     }
+    private isTargetExpired(target): boolean {
+        if (!target.deadline) return false;
+
+        const deadline = new Date(target.deadline);
+        const today = new Date();
+
+        deadline.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        return (
+            deadline < today &&
+            target.targetState !== State.FINISHED
+        );
+    }
 
     async findAllForOrganization(
         organizationId: string,
@@ -71,10 +85,7 @@ export class ProjectService {
 
                         targets: project.targets.map((target) => ({
                             ...target,
-                            isExpired: target.deadline
-                                ? new Date(target.deadline) < new Date() &&
-                                target.targetState !== State.FINISHED
-                                : false,
+                            isExpired: this.isTargetExpired(target),
                         })),
 
                         strategyId: project.strategy?.id ?? null,
@@ -142,10 +153,7 @@ export class ProjectService {
                 organization: program.organization,
                 targets: program.targets.map((target) => ({
                     ...target,
-                    isExpired: target.deadline
-                        ? new Date(target.deadline) < new Date() &&
-                        target.targetState !== State.FINISHED
-                        : false,
+                    isExpired: this.isTargetExpired(target),
                 })),
                 strategy: program.strategy,
                 account: program.account,
@@ -185,10 +193,7 @@ export class ProjectService {
                 organization: project.organization,
                 targets: project.targets.map((target) => ({
                     ...target,
-                    isExpired: target.deadline
-                        ? new Date(target.deadline) < new Date() &&
-                        target.targetState !== State.FINISHED
-                        : false,
+                    isExpired: this.isTargetExpired(target),
                 })),
                 strategy: project.strategy,
                 account: project.account,
@@ -235,10 +240,7 @@ export class ProjectService {
                     relations !== undefined
                         ? project.targets.map((target) => ({
                             ...target,
-                            isExpired: target.deadline
-                                ? new Date(target.deadline) < new Date() &&
-                                target.targetState !== State.FINISHED
-                                : false,
+                            isExpired: this.isTargetExpired(target),
                         }))
                         : project.targets,
                 strategy: project.strategy,
@@ -276,10 +278,7 @@ export class ProjectService {
                 organization: program.organization,
                 targets: program.targets.map((target) => ({
                     ...target,
-                    isExpired: target.deadline
-                        ? new Date(target.deadline) < new Date() &&
-                        target.targetState !== State.FINISHED
-                        : false,
+                    isExpired: this.isTargetExpired(target),
                 })),
                 strategy: program.strategy,
                 account: program.account,
@@ -331,10 +330,7 @@ export class ProjectService {
                 organization: project.organization,
                 targets: project.targets.map((target) => ({
                     ...target,
-                    isExpired: target.deadline
-                        ? new Date(target.deadline) < new Date() &&
-                        target.targetState !== State.FINISHED
-                        : false,
+                    isExpired: this.isTargetExpired(target),
                 })),
                 strategy: project.strategy,
                 account: project.account,
