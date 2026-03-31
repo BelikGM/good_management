@@ -59,6 +59,40 @@ export class OrganizationService {
         }));
     }
 
+    async findAllPostForAccount(accountId: string) {
+        const organizations = await this.organizationRepository.find({
+            where: { account: { id: accountId } },
+        });
+        const orgIds = organizations.map(org => org.id);
+
+        const posts = await this.dataSource.getRepository(Post).find({
+            where: {
+                organization: { id: In(orgIds) },
+                isArchive: false,
+            },
+            relations: ['organization', 'user'], // <--- обязательно
+        });
+
+        const postsMap = new Map<string, any[]>();
+        posts.forEach(post => {
+                const orgId = post.organization.id;
+
+                if (!postsMap.has(orgId)) postsMap.set(orgId, []);
+                postsMap.get(orgId)!.push({
+                    id: post.id,
+                    postName: post.postName,
+                    divisionName: post.divisionName,
+                    user: post.user,
+                    parentId: post.parentId,
+                    underPosts: posts.filter((underPost) => underPost.parentId === post.id &&  underPost.organization.id === post.organization.id),
+                });
+        });
+
+        return organizations.map(org => ({
+            ...org,
+            posts: postsMap.get(org.id) || [],
+        }));
+    }
 
     async findAllForAccount(
         accountId: string,

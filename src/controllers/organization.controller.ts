@@ -86,6 +86,28 @@ export class OrganizationController {
         return await this.organizationService.findAllWithHighPostForAccount(user.account.id);
     }
 
+    @Get('allOrganizationWithAllPost')
+    @ApiOperation({summary: 'Все организации в аккаунте (highPost?)'})
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'ОК!',
+        example: findAllOrganizationsExample,
+    })
+    @ApiResponse({
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'Вы не авторизованы!',
+    })
+    @ApiResponse({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        description: 'Ошибка сервера!',
+    })
+    async findAllPostForAccount(
+        @Req() req: ExpressRequest,
+    ): Promise<OrganizationReadDto[]> {
+        const user = req.user as ReadUserDto;
+        return await this.organizationService.findAllPostForAccount(user.account.id);
+    }
+
     @Patch(':organizationId/update')
     @ApiOperation({summary: 'Обновить данные об организации по ID'})
     @ApiResponse({
