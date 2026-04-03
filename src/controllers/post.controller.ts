@@ -783,4 +783,48 @@ export class PostController {
     );
     return { id: updatedPostId };
   }
+
+    @Get(':postId/postForView')
+    @UseGuards(PermissionsGuard)
+    @ModuleAccess(Modules.POST)
+    @ActionAccess(Actions.READ)
+    @ApiOperation({ summary: 'Получить пост по id' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'ОК!',
+        example: findOnePostExample,
+    })
+    @ApiResponse({
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'Вы не авторизованы!',
+    })
+    @ApiResponse({
+        status: HttpStatus.NOT_FOUND,
+        description: 'Пост не найден!',
+    })
+    @ApiResponse({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        description: 'Ошибка сервера!',
+    })
+    @ApiParam({
+        name: 'postId',
+        required: true,
+        description: 'Id поста',
+    })
+    async findOneForView(@Param('postId') postId: string): Promise<{
+        currentPost: PostReadDto;
+    }> {
+        const currentPost = await this.postService.findOneById(postId, [
+            'policy',
+            'user',
+            'statistics',
+            'role'
+        ]);
+
+        return {
+            currentPost,
+        };
+    }
+
 }
+
