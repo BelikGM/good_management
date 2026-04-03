@@ -427,7 +427,7 @@ export class ProjectController {
             console.log('-------------------   ',[holderProductPostId, target.holderPostId])
             convertCreateDto.convertPath = PathConvert.DIRECT;
             convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-            convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
+            convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задыча: ${target.content}`;
             convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
             convertCreateDto.deadline = target.deadline;
             convertCreateDto.convertType = TypeConvert.ORDER;
