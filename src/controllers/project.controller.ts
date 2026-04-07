@@ -392,6 +392,7 @@ export class ProjectController {
     const convertCreateDtos: any[] = [];
     const convertCreateForUpdateTargetDtos: any[] = [];
     const convertUpdateDtos: any[] = [];
+
     if (holderProductPostId) {
       const senderPost =
         await this.postService.findOneById(holderProductPostId);
@@ -427,7 +428,7 @@ export class ProjectController {
             console.log('-------------------   ',[holderProductPostId, target.holderPostId])
             convertCreateDto.convertPath = PathConvert.DIRECT;
             convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-            convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задыча: ${target.content}`;
+            convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задача: ${target.content}`;
             convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
             convertCreateDto.deadline = target.deadline;
             convertCreateDto.convertType = TypeConvert.ORDER;
@@ -510,7 +511,7 @@ export class ProjectController {
 
                 const messageUpdateDto = new MessageUpdateDto();
                 messageUpdateDto._id = message.id;
-                messageUpdateDto.content = `${projectReadDto.type} ${projectReadDto.id} ${target.content}`;
+                messageUpdateDto.content = `${projectReadDto.type} ${projectReadDto.id} Задача: ${target.content}`;
 
                 await this.messageService.update(
                     messageUpdateDto._id,
@@ -543,7 +544,7 @@ export class ProjectController {
               console.log('-------------------   ',postIdsFromSenderToReciver)
               convertCreateDto.convertPath = PathConvert.DIRECT;
               convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-              convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задыча: ${target.content}`;
+              convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задача: ${target.content}`;
               convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
               convertCreateDto.deadline = target.deadline;
               convertCreateDto.convertType = TypeConvert.ORDER;
