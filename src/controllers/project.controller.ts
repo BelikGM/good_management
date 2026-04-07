@@ -446,6 +446,9 @@ export class ProjectController {
                   sender: activePost,
               });
 
+              target.convert = createdConvert;
+
+
               convertCreateDtos.push(createdConvert);
 
           });
@@ -561,6 +564,7 @@ export class ProjectController {
                     convert: createdConvert,
                     sender: activePost,
                 });
+                target.convert = createdConvert;
 
                 convertCreateForUpdateTargetDtos.push(createdConvert);
             }
@@ -574,6 +578,8 @@ export class ProjectController {
       );
       projectUpdateDto.strategy = strategy;
     }
+
+    console.log("convertCreateForUpdateTargetDtos = ", convertCreateForUpdateTargetDtos);
 
     const updatedProjectId = await this.projectService.update(
       projectId,

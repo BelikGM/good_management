@@ -520,14 +520,19 @@ export class ProjectService {
             // console.log(convertCreateDtos);
             // console.log(convertUpdateDtos);
             if (updateProjectDto.targetCreateDtos?.length > 0) {
+                // for (let i = 0; i < updateProjectDto.targetCreateDtos.length; i++) {
+                //     const targetCreateDto = updateProjectDto.targetCreateDtos[i];
+                //     if (
+                //         convertCreateDtos.length > 0 &&
+                //         convertCreateDtos[i].pathOfPosts.length > 1
+                //     ) {
+                //         targetCreateDto.convert = convertCreateDtos[i];
+                //     }
+                //     targetCreateDto.project = project;
+                // }
+
                 for (let i = 0; i < updateProjectDto.targetCreateDtos.length; i++) {
                     const targetCreateDto = updateProjectDto.targetCreateDtos[i];
-                    if (
-                        convertCreateDtos.length > 0 &&
-                        convertCreateDtos[i].pathOfPosts.length > 1
-                    ) {
-                        targetCreateDto.convert = convertCreateDtos[i];
-                    }
                     targetCreateDto.project = project;
                 }
 
@@ -556,7 +561,7 @@ export class ProjectService {
                         // );
 
                         // targetUpdateDto.convert = createdConvert;
-                        targetUpdateDto.convert = convertCreateForUpdateTargetDtos[i];
+                        // targetUpdateDto.convert = convertCreateForUpdateTargetDtos.find(dto => dto.targetId === targetUpdateDto._id);
                     }
                 }
                 await this.targetService.updateBulk(updateProjectDto.targetUpdateDtos);
