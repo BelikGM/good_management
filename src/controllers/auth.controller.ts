@@ -76,15 +76,20 @@ export class AuthController {
       console.log(err);
       throw new UnprocessableEntityException('Wrong VK code');
     }
-    console.log(JSON.stringify(authData.data));
+
+    console.log("authData.data = ", JSON.stringify(authData.data, null, 2));
+
     const userData = await this.authService.getUserDataFromVk(
       authData.data.access_token,
     );
-    console.log(JSON.stringify(`+${userData.data.user.phone}`));
-    console.log(JSON.stringify(userData.data));
+
+
+    console.log("userData.data = ", JSON.stringify(userData.data, null, 2));
+
     const _user = await this.userService.findOneByTelephoneNumber(
       `+${userData.data.user.phone}`,
     );
+
     let updatedUser = _user;
     if (_user) {
       if (_user.vk_id) {

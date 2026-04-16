@@ -19,7 +19,7 @@ async function bootstrap() {
     // }
 
     cors: {
-      origin: process.env.NODE_ENV === 'dev' ? 'http://localhost:3000' : false,
+      origin: process.env.NODE_ENV === 'dev' ? true : false,
       credentials: true,
     },
   });

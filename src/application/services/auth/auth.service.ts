@@ -106,6 +106,7 @@ export class AuthService {
 
   async getVkToken(auth: AuthVK): Promise<any> {
     try {
+        console.log("auth = ", auth);
       const VKDATA = {
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
@@ -113,15 +114,16 @@ export class AuthService {
 
       const host =
         process.env.NODE_ENV === 'prod'
-          ? process.env.API_HOST
-          : process.env.API_LOCAL;
+          ? process.env.PROD_API_HOST
+          : process.env.API_HOST;
+
       return this.httpService
         .post(
           `https://id.vk.com/oauth2/auth`,
           {
             grant_type: 'authorization_code',
             code_verifier: auth.code_verifier,
-            redirect_uri: host,
+            redirect_uri: process.env.NODE_ENV === 'prod' ? process.env.PROD_API_HOST : "https://drained-unplanned-salsa.ngrok-free.dev",
             code: auth.code,
             client_id: VKDATA.client_id,
             client_secret: VKDATA.client_secret,
@@ -130,6 +132,7 @@ export class AuthService {
           },
         )
         .toPromise();
+
     } catch (err) {
       this.logger.error(err);
       throw new InternalServerErrorException('Ошибка при получении токена ВК!');
