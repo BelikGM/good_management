@@ -388,7 +388,7 @@ export class ProjectService {
         try {
             const project = await this.projectRepository.findOne({
                 where: {id: _id},
-                relations: ['strategy'],
+                relations: ['strategy', 'targets', 'targets.convert'],
             });
             if (!project) {
                 throw new NotFoundException(`Проект с ID ${_id} не найден`);
@@ -418,70 +418,10 @@ export class ProjectService {
                     .createQueryBuilder('project')
                     .leftJoinAndSelect('project.targets', 'targets')
                     .where('project.programId = :programId', {programId: project.id})
-                    // .andWhere((qb) => {
-                    //   const subQuery = qb
-                    //     .subQuery()
-                    //     .select('1')
-                    //     .from('target', 'subTargets')
-                    //     .where('subTargets.projectId = project.id')
-                    //     .andWhere('subTargets.type = :type', { type: TypeTarget.PRODUCT })
-                    //     .andWhere('subTargets.targetState = :state', {
-                    //       state: State.ACTIVE,
-                    //     })
-                    //     .getQuery();
-                    //   return `EXISTS (${subQuery})`;
-                    // })
                     .getMany();
                 console.log(projectsWithCurrentProgram);
-                // let activeProjectsWithCurrentProgramIds = projectsWithCurrentProgram
-                //   .filter((project) =>
-                //     project.targets.some(
-                //       (target) =>
-                //         new Date(target.deadline) > new Date() &&
-                //         target.targetState === State.ACTIVE &&
-                //         target.type === TypeTarget.PRODUCT,
-                //     ),
-                //   )
-                //   .map((project) => project.id);
-                // console.log(
-                //   `activeProjectsWithCurrentProgramIds: ${activeProjectsWithCurrentProgramIds}`,
-                // );
-                // let expiredProjectsWithCurrentProgramIds = projectsWithCurrentProgram
-                //   .filter((project) =>
-                //     project.targets.some(
-                //       (target) =>
-                //         new Date(target.deadline) < new Date() &&
-                //         target.targetState === State.ACTIVE &&
-                //         target.type === TypeTarget.PRODUCT,
-                //     ),
-                //   )
-                //   .map((project) => project.id);
-                // console.log(
-                //   `expiredProjectsWithCurrentProgramIds: ${expiredProjectsWithCurrentProgramIds}`,
-                // );
-                // if (activeProjectsWithCurrentProgramIds === undefined)
-                //   activeProjectsWithCurrentProgramIds = [];
-                // if (expiredProjectsWithCurrentProgramIds === undefined)
-                //   expiredProjectsWithCurrentProgramIds = [];
-
-                // const projectIdsToAdd = updateProjectDto.projectIds.filter(
-                //   (id) =>
-                //     !activeProjectsWithCurrentProgramIds.includes(id) &&
-                //     !expiredProjectsWithCurrentProgramIds.includes(id),
-                // );
-                // const projectIdsToUpdate = updateProjectDto.projectIds.filter((id) =>
-                //   activeProjectsWithCurrentProgramIds.includes(id),
-                // );
-                // const commonArray = activeProjectsWithCurrentProgramIds.concat(
-                //   expiredProjectsWithCurrentProgramIds,
-                // );
-                // const projectIdsToDelete = commonArray.filter(
-                //   (id) => !updateProjectDto.projectIds.includes(id),
-                // );
-                //   console.log(`projectIdsToUpdate: ${projectIdsToUpdate}`);
 
                 const allShiftBD = projectsWithCurrentProgram.map((project) => project.id);
-                const allShiftFRONT = updateProjectDto.projectIds;
 
                 const projectIdsToAdd = updateProjectDto.projectIds.filter(
                     (id) =>
@@ -500,12 +440,6 @@ export class ProjectService {
                         {programId: project.id, strategy: project.strategy},
                     );
                 }
-                // if (projectIdsToUpdate.length > 0) {
-                //   await this.projectRepository.update(
-                //     { id: In(projectIdsToUpdate) },
-                //     { strategy: project.strategy },
-                //   );
-                // }
                 if (projectIdsToDelete.length > 0) {
                     await this.projectRepository.update(
                         {id: In(projectIdsToDelete)},
@@ -513,24 +447,8 @@ export class ProjectService {
                     );
                 }
             }
-            // const createdConverts = convertCreateDtos?.length
-            //   ? await this.convertService.createBulkForProject(convertCreateDtos)
-            //   : [];
 
-            // console.log(convertCreateDtos);
-            // console.log(convertUpdateDtos);
             if (updateProjectDto.targetCreateDtos?.length > 0) {
-                // for (let i = 0; i < updateProjectDto.targetCreateDtos.length; i++) {
-                //     const targetCreateDto = updateProjectDto.targetCreateDtos[i];
-                //     if (
-                //         convertCreateDtos.length > 0 &&
-                //         convertCreateDtos[i].pathOfPosts.length > 1
-                //     ) {
-                //         targetCreateDto.convert = convertCreateDtos[i];
-                //     }
-                //     targetCreateDto.project = project;
-                // }
-
                 for (let i = 0; i < updateProjectDto.targetCreateDtos.length; i++) {
                     const targetCreateDto = updateProjectDto.targetCreateDtos[i];
                     targetCreateDto.project = project;
@@ -538,34 +456,64 @@ export class ProjectService {
 
                 await this.targetService.createBulk(updateProjectDto.targetCreateDtos);
             }
+
             if (updateProjectDto.targetUpdateDtos?.length > 0) {
                 for (let i = 0; i < updateProjectDto.targetUpdateDtos.length; i++) {
                     const targetUpdateDto = updateProjectDto.targetUpdateDtos[i];
-                    // const convertCreateDtoForTarget = convertCreateDtos.find(
-                    //   (dto) => dto.targetId === targetUpdateDto._id,
-                    // );&&
-                    //             convertCreateDtoForTarget?.pathOfPosts.length > 1
                     if (targetUpdateDto.convert && convertUpdateDtos.length > 0) {
                         const convertToUpdate = convertUpdateDtos.find(
                             (dto) => dto.targetId === targetUpdateDto._id,
                         );
+
                         await this.convertService.updateFromProject(
                             convertToUpdate._id,
                             convertToUpdate,
                         );
-                    } else if (
-                        convertCreateForUpdateTargetDtos.length > 0
-                    ) {
-                        // const createdConvert = await this.convertService.create(
-                        //   convertCreateDtoForTarget,
-                        // );
-
-                        // targetUpdateDto.convert = createdConvert;
-                        // targetUpdateDto.convert = convertCreateForUpdateTargetDtos.find(dto => dto.targetId === targetUpdateDto._id);
                     }
                 }
                 await this.targetService.updateBulk(updateProjectDto.targetUpdateDtos);
             }
+
+            // Для изменения темы конверта, при изменении названия проекта
+            // if (updateProjectDto.projectName && project.targets.length > 0 && ) {
+            //
+            //     const converts = project.targets.map( async (target) => {
+            //         console.log("target = ", target)
+            //
+            //         const convertUpdateDto = new ConvertUpdateDto();
+            //         convertUpdateDto.convertTheme = updateProjectDto.projectName + " " + target.type + " №" + target.orderNumber;
+            //         await this.convertService.updateFromProject(
+            //             target.convert.id,
+            //             convertUpdateDto,
+            //         );
+            //     })
+            //
+            //     await Promise.all(converts);
+            //
+            // }
+
+            if (updateProjectDto.projectName && project.targets.length > 0) {
+                // Фильтруем только те target, у которых есть convert
+                const targetsWithConvert = project.targets.filter(target => target.convert);
+
+                if (targetsWithConvert.length === 0) {
+                    console.log('Нет targets с convert для обновления');
+                    return;
+                }
+
+                const converts = targetsWithConvert.map(async (target) => {
+                    const convertUpdateDto = new ConvertUpdateDto();
+                    convertUpdateDto.convertTheme = updateProjectDto.projectName + " " + target.type + " №" + target.orderNumber;
+
+                    await this.convertService.updateFromProject(
+                        target.convert.id,
+                        convertUpdateDto,
+                    );
+                });
+
+                await Promise.all(converts);
+            }
+
 
             return project.id;
         } catch (err) {
