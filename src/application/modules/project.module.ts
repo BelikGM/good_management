@@ -11,7 +11,6 @@ import { QueueModule } from './queue.module';
 import { PostModule } from './post.module';
 import { ConvertModule } from './convert.module';
 import {MessageModule} from "./message.module";
-import {EventsModule} from "./events.module";
 
 @Module({
   imports: [
@@ -21,7 +20,6 @@ import {EventsModule} from "./events.module";
     TargetModule,
     OrganizationModule,
     forwardRef(() => QueueModule),
-      forwardRef(() => EventsModule),
     ConvertModule,
       MessageModule
   ],

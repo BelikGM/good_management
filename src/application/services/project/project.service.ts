@@ -21,7 +21,6 @@ import {ConvertService} from '../convert/convert.service';
 import {ConvertUpdateDto} from 'src/contracts/convert/update-convert.dto';
 import {MessageService} from "../message/message.service";
 import {PostService} from "../post/post.service";
-import { ConvertGateway } from 'src/gateways/convert.gateway';
 
 @Injectable()
 export class ProjectService {
@@ -32,12 +31,10 @@ export class ProjectService {
         private readonly projectRepository: ProjectRepository,
         private readonly targetService: TargetService,
         private readonly convertService: ConvertService,
-        private readonly convertGateway: ConvertGateway,
         @Inject('winston') private readonly logger: Logger,
         private dataSource: DataSource,
     ) {
     }
-
     private isTargetExpired(target): boolean {
         if (!target.deadline) return false;
 
@@ -477,42 +474,6 @@ export class ProjectService {
                 await this.targetService.updateBulk(updateProjectDto.targetUpdateDtos);
             }
 
-             // для product === Завершен то все конверты в архивные переходят
-            // const shouldCloseConverts = updateProjectDto?.targetUpdateDtos?.some(
-            //     (target) =>
-            //         target.targetState === 'Завершена' &&
-            //         target.type === 'Продукт',
-            // );
-            //
-            // console.log("shouldCloseConverts", shouldCloseConverts);
-            // console.log("project.targets", project.targets);
-            // if (shouldCloseConverts) {
-            //
-            //     for (const target of project.targets) {
-            //         if (!target.convert) {
-            //             continue;
-            //         }
-            //
-            //         if(shouldCloseConverts){
-            //             console.log(" if(shouldCloseConverts){");
-            //             const finishedConvertId = await this.convertService.updateFromProject(
-            //                 target.convert.id,
-            //                 {
-            //                     _id:target.convert.id,
-            //                     convertStatus:false,
-            //                 },
-            //             );
-            //             const response =  this.convertGateway.handleConvertFinishEvent(
-            //                 finishedConvertId,
-            //                 false,
-            //                 target.convert.pathOfPosts,
-            //             );
-            //             console.log("response", response);
-            //         }
-            //
-            //     }
-            // }
-
             // Для изменения темы конверта, при изменении названия проекта
             // if (updateProjectDto.projectName && project.targets.length > 0 && ) {
             //
@@ -530,6 +491,7 @@ export class ProjectService {
             //     await Promise.all(converts);
             //
             // }
+
             if (updateProjectDto.projectName && project.targets.length > 0) {
                 // Фильтруем только те target, у которых есть convert
                 const targetsWithConvert = project.targets.filter(target => target.convert);
