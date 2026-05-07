@@ -72,7 +72,7 @@ export class UsersController {
   async findAll(
     @Param('organizationId') organizationId: string,
   ): Promise<ReadUserDto[]> {
-    return await this.usersService.findAllForOrganization(organizationId);
+    return await this.usersService.findAllForOrganization(organizationId, ["posts"]);
   }
 
     // добавил в relations posts
@@ -101,7 +101,7 @@ export class UsersController {
   async findAllActiveUsers(
     @Param('organizationId') organizationId: string,
   ): Promise<ReadUserDto[]> {
-    return await this.usersService.findAllActiveForOrganization(organizationId, ["posts"]);
+    return await this.usersService.findAllActiveForOrganization(organizationId);
   }
 
 // добавил в relations posts
@@ -130,7 +130,7 @@ export class UsersController {
   async findAllFiredUsers(
     @Param('organizationId') organizationId: string,
   ): Promise<ReadUserDto[]> {
-    return await this.usersService.findAllFiredForOrganization(organizationId, ["posts"]);
+    return await this.usersService.findAllFiredForOrganization(organizationId);
   }
 
   @Get(':orgainizationId/new')
