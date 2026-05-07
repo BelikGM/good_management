@@ -75,7 +75,7 @@ export class UsersController {
     return await this.usersService.findAllForOrganization(organizationId);
   }
 
-  
+    // добавил в relations posts
   @Get(':organizationId/organization/active')
   @ApiOperation({ summary: 'Все активные пользователи в организации (не уволенные)' })
   @ApiResponse({
@@ -104,7 +104,7 @@ export class UsersController {
     return await this.usersService.findAllActiveForOrganization(organizationId, ["posts"]);
   }
 
-
+// добавил в relations posts
   @Get(':organizationId/organization/fired')
   @ApiOperation({ summary: 'Все уволенные пользователи в организации' })
   @ApiResponse({
