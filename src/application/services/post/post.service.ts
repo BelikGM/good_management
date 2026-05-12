@@ -378,6 +378,7 @@ private mapPostToDto(post: Post): PostReadDto {
           'user.telegramId AS "userTelegramId"',
           'user.telephoneNumber AS "userTelephoneNumber"',
           'user.avatar_url AS "userAvatar"',
+            'user.isFired AS "isFired"',
           'MAX("latestMessage"."createdAt") AS "latestMessageCreatedAt"',
           'SUM("wtc"."unreadMessagesCount") AS "watcherUnseenCount"',
           'COUNT("unreadMessages"."id") AS "unseenMessagesCount"',
@@ -422,6 +423,7 @@ private mapPostToDto(post: Post): PostReadDto {
           'user.lastName AS "userLastName"',
           'user.telephoneNumber AS "userTelephoneNumber"',
           'user.avatar_url AS "userAvatar"',
+          'user.isFired AS "isFired"',
         ])
         .groupBy('post.id, user.id');
 
