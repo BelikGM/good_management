@@ -384,7 +384,8 @@ export class ProjectController {
         @Body() projectUpdateDto: ProjectUpdateDto,
         @Query('holderProductPostId') holderProductPostId?: string,
     ): Promise<{ id: string }> {
-        const projectReadDto = await this.projectService.findOneById(projectId);
+        // Стало
+        const projectReadDto = await this.projectService.findOneById(projectId, ['targets', 'targets.convert']);
         this.logger.info(
             `projectReadDto - ${projectReadDto}`,
         );
@@ -467,7 +468,15 @@ export class ProjectController {
                     projectUpdateDto.targetUpdateDtos.map(async (target) => {
                         const isProductTarget = target.type === TargetType.PRODUCT;
 
-                        if (target.convert) {
+                        // Проверяем наличие convert в БД, а не в DTO
+                        const existingTarget = projectReadDto.targets?.find(
+                            (t) => t.id === target._id
+                        );
+                        const hasExistingConvert = !!existingTarget?.convert?.id;
+
+                        if (hasExistingConvert) {
+                            target.convert = existingTarget.convert; // подставляем из БД
+
                             const convertUpdateDto = new ConvertUpdateDto();
                             if (target.holderPostId) {
                                 const [postIdsFromSenderToTop, postIdsFromRecieverToTop] =
