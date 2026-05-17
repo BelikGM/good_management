@@ -1,5 +1,6 @@
 import {
     Body,
+    Delete,
     Controller,
     Get,
     HttpStatus,
@@ -384,6 +385,9 @@ export class ProjectController {
         @Query('holderProductPostId') holderProductPostId?: string,
     ): Promise<{ id: string }> {
         const projectReadDto = await this.projectService.findOneById(projectId);
+        this.logger.info(
+            `projectReadDto - ${projectReadDto}`,
+        );
         const user = req.user as ReadUserDto;
         const userPost = user.posts.find((post) => post.isDefault);
         if (!userPost) {
@@ -403,56 +407,57 @@ export class ProjectController {
             if (projectUpdateDto.targetCreateDtos?.length > 0) {
                 const convertCreationForTargetCreatePromises =
                     projectUpdateDto.targetCreateDtos.map(async (target) => {
-                        const convertCreateDto = new ConvertCreateDto();
-                        const [postIdsFromSenderToTop, postIdsFromRecieverToTop] =
-                            await Promise.all([
-                                this.postService.getHierarchyToTop(holderProductPostId),
-                                this.postService.getHierarchyToTop(target.holderPostId),
-                            ]);
+                        if(!target.convert.id){
+                            const convertCreateDto = new ConvertCreateDto();
+                            const [postIdsFromSenderToTop, postIdsFromRecieverToTop] =
+                                await Promise.all([
+                                    this.postService.getHierarchyToTop(holderProductPostId),
+                                    this.postService.getHierarchyToTop(target.holderPostId),
+                                ]);
 
-                        const isCommonDivision = createPathFromSenderToRecieverPost(
-                            postIdsFromSenderToTop,
-                            postIdsFromRecieverToTop,
-                        ).isCommonDivision;
-                        const postIdsFromSenderToReciver =
-                            createPathFromSenderToRecieverPost(
+                            const isCommonDivision = createPathFromSenderToRecieverPost(
                                 postIdsFromSenderToTop,
                                 postIdsFromRecieverToTop,
-                            ).postIdsFromSenderToReciver;
+                            ).isCommonDivision;
+                            const postIdsFromSenderToReciver =
+                                createPathFromSenderToRecieverPost(
+                                    postIdsFromSenderToTop,
+                                    postIdsFromRecieverToTop,
+                                ).postIdsFromSenderToReciver;
 
-                        // setConvertPath(
-                        //   convertCreateDto,
-                        //   postIdsFromSenderToReciver,
-                        //   isCommonDivision,
-                        // );
+                            // setConvertPath(
+                            //   convertCreateDto,
+                            //   postIdsFromSenderToReciver,
+                            //   isCommonDivision,
+                            // );
 
-                        console.log('-------------------   ', [holderProductPostId, target.holderPostId])
-                        convertCreateDto.convertPath = PathConvert.DIRECT;
-                        convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
-                        convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задача: ${target.content}`;
-                        convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
-                        convertCreateDto.deadline = target.deadline;
-                        convertCreateDto.convertType = TypeConvert.ORDER;
-                        convertCreateDto.host = senderPost;
-                        convertCreateDto.account = user.account;
+                            console.log('-------------------   ', [holderProductPostId, target.holderPostId])
+                            convertCreateDto.convertPath = PathConvert.DIRECT;
+                            convertCreateDto.convertTheme = projectReadDto.projectName + " " + target.type + " №" + target.orderNumber;
+                            convertCreateDto.messageContent = `${projectReadDto.type} ${projectReadDto.id} Задача: ${target.content}`;
+                            convertCreateDto.pathOfPosts = [holderProductPostId, target.holderPostId];
+                            convertCreateDto.deadline = target.deadline;
+                            convertCreateDto.convertType = TypeConvert.ORDER;
+                            convertCreateDto.host = senderPost;
+                            convertCreateDto.account = user.account;
 
-                        const [createdConvert, activePost] = await Promise.all([
-                            this.convertService.create(convertCreateDto),
-                            this.postService.findOneById(convertCreateDto?.pathOfPosts[0], ['user']),
-                        ]);
+                            const [createdConvert, activePost] = await Promise.all([
+                                this.convertService.create(convertCreateDto),
+                                this.postService.findOneById(convertCreateDto?.pathOfPosts[0], ['user']),
+                            ]);
 
-                        await this.messageService.create({
-                            content: convertCreateDto.messageContent,
-                            postId: convertCreateDto.senderPostId,
-                            convert: createdConvert,
-                            sender: activePost,
-                        });
+                            await this.messageService.create({
+                                content: convertCreateDto.messageContent,
+                                postId: convertCreateDto.senderPostId,
+                                convert: createdConvert,
+                                sender: activePost,
+                            });
 
-                        target.convert = createdConvert;
+                            target.convert = createdConvert;
 
 
-                        convertCreateDtos.push(createdConvert);
-
+                            convertCreateDtos.push(createdConvert);
+                        }
                     });
                 await Promise.all(convertCreationForTargetCreatePromises);
             }
@@ -675,4 +680,34 @@ export class ProjectController {
         );
         return {project: project, strategies: strategies};
     }
+
+    @Delete(':projectId/delete')
+    @ApiOperation({summary: 'Удалить черновик проекта'})
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'ОК!',
+        example: { message: 'Черновик проекта удален!' },
+    })
+    @ApiResponse({
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'Вы не авторизованы!',
+    })
+    @ApiResponse({
+        status: HttpStatus.NOT_FOUND,
+        description: 'Проект не найден!',
+    })
+    @ApiResponse({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        description: 'Ошибка сервера!',
+    })
+    @ApiParam({
+        name: 'projectId',
+        required: true,
+        description: 'Id проекта',
+    })
+    async delete(@Param('projectId') projectId: string) {
+        await this.projectService.delete(projectId);
+        return { message: 'Проект успешно удален!' };
+    }
 }
+

@@ -22,6 +22,7 @@ import {ConvertUpdateDto} from 'src/contracts/convert/update-convert.dto';
 import {MessageService} from "../message/message.service";
 import {PostService} from "../post/post.service";
 import {ConvertGateway} from 'src/gateways/convert.gateway';
+import {TargetRepository} from "../target/repository/target.repository";
 
 @Injectable()
 export class ProjectService {
@@ -33,6 +34,7 @@ export class ProjectService {
         private readonly targetService: TargetService,
         private readonly convertService: ConvertService,
         private readonly convertGateway: ConvertGateway,
+        private readonly targetRepository: TargetRepository,
         @Inject('winston') private readonly logger: Logger,
         private dataSource: DataSource,
     ) {
@@ -534,6 +536,37 @@ export class ProjectService {
             }
 
             throw new InternalServerErrorException('Ошибка при обновлении проекта');
+        }
+    }
+
+    @Transactional()
+    async delete(_id: string): Promise<void> {
+        try {
+            const project = await this.projectRepository.findOne({
+                where: { id: _id },
+                relations: ['targets'], // подгружаем связанные targets
+            });
+            if (!project) {
+                throw new NotFoundException(`Проект с ID ${_id} не найден`);
+            }
+
+            // Сначала удаляем связанные записи
+            if (project.targets?.length) {
+                await this.targetRepository.remove(project.targets);
+            }
+
+            await this.projectRepository.remove(project);
+        } catch (err) {
+            this.logger.error(err);
+            if (err instanceof NotFoundException) {
+                throw err;
+            }
+            if (err instanceof BadRequestException) {
+                throw err;
+            }
+            throw new InternalServerErrorException(
+                'Ошибка при удалении проекта',
+            );
         }
     }
 }

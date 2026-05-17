@@ -119,7 +119,10 @@ export class Project {
   /**
    * Связь с сущностью 1:M Target.
    */
-  @OneToMany(() => Target, (target) => target.project)
+  @OneToMany(() => Target, (target) => target.project, {
+      cascade: true,
+      onDelete: 'CASCADE',
+  })
   targets: Target[];
 
   /**

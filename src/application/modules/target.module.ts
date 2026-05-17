@@ -19,6 +19,6 @@ import { AttachmentToTargetModule } from './attachmentToTarget.module';
   ],
   controllers: [TargetController],
   providers: [TargetService, TargetRepository],
-  exports: [TargetService],
+  exports: [TargetService, TargetRepository],
 })
 export class TargetModule {}
