@@ -25,137 +25,271 @@ export class TelegramService {
     this.bot = new Telegraf(process.env.BOT_TOKEN);
   }
 
-  startBot() {
+  // startBot() {
+  //
+  //   // --- Обработка /start ---
+  //   this.bot.start(async (ctx) => {
+  //     try {
+  //       if (!ctx.message.text.startsWith('/start')) {
+  //         return ctx.reply(
+  //           'Взаимодействие с ботом возможно только через ссылку на главном экране приложения!',
+  //         );
+  //       }
+  //
+  //       const chatId = ctx.update.message?.chat.id || '';
+  //       const match = ctx.message.text.match(/^\/start ([\w-]+)$/);
+  //
+  //       if (!match) {
+  //         return ctx.reply(
+  //           'Команда /start не соответствует ожидаемому формату, пожалуйста, используйте QR - код или ссылку из приложения!',
+  //         );
+  //       }
+  //
+  //       const command = match[1].replace('/start', '');
+  //       const dashIndex = command.indexOf('-');
+  //       const token = command.slice(0, dashIndex);
+  //       const clientId = command.slice(dashIndex + 1);
+  //
+  //       if (!token) {
+  //         return ctx.reply(
+  //           'Пожалуйста, используйте QR - код или ссылку из приложения!',
+  //         );
+  //       }
+  //
+  //       const telegramId = ctx.message.from.id;
+  //       const user = await this.usersService.findOneByTelegramId(telegramId);
+  //
+  //       // --- Очистка всех предыдущих сообщений бота (новая сессия) ---
+  //       const chat = this.chatStorageService.getChatInfo(chatId);
+  //       if (chat?.messages) {
+  //         for (const messageId of chat.messages) {
+  //           await ctx.deleteMessage(messageId).catch(() => {});
+  //         }
+  //       }
+  //       this.chatStorageService.clearChatById(chatId);
+  //
+  //       if (user) {
+  //         // --- Отправка новых сообщений бота ---
+  //         const welcomeMsg = await ctx.reply(
+  //           'Привет, я бот для регистрации в GoodManagement!',
+  //         );
+  //         this.chatStorageService.addMessageId(chatId, welcomeMsg.message_id);
+  //
+  //         const stickerMsg = await ctx.replyWithSticker(
+  //           'CAACAgIAAxkBAAEUfY9pNoYQWbFg-0DT-awSsE8EM1PofwACIYIAAhDFuEmHfIHDf-z_VTYE',
+  //         );
+  //         this.chatStorageService.addMessageId(chatId, stickerMsg.message_id);
+  //
+  //         const authFlag = await this.authRequest(user, telegramId, token, clientId, ctx);
+  //         if (authFlag) {
+  //           const successMsg = await ctx.reply('Вход успешен!');
+  //           this.chatStorageService.addMessageId(chatId, successMsg.message_id);
+  //         }
+  //
+  //       } else {
+  //         // --- Если пользователя нет, сохраняем токен и clientId и просим поделиться контактом ---
+  //         this.chatStorageService.setChatInfo(chatId, {
+  //           token,
+  //           clientId,
+  //           messages: [],
+  //         });
+  //         const promptMsg = await ctx.reply(
+  //           'Добро пожаловать в бота, чтобы войти поделитесь контактом, нажав на кнопку ниже:',
+  //           {
+  //             reply_markup: {
+  //               keyboard: [[{ text: 'Поделиться контактом', request_contact: true }]],
+  //               resize_keyboard: true,
+  //               one_time_keyboard: true,
+  //             },
+  //           },
+  //         );
+  //         this.chatStorageService.addMessageId(chatId, promptMsg.message_id);
+  //       }
+  //
+  //     } catch (err) {
+  //       this.logger.error(err);
+  //     }
+  //   });
+  //
+  //   // --- Обработка контакта ---
+  //   this.bot.on('contact', async (ctx) => {
+  //     try {
+  //       const chatId = ctx.update.message?.chat.id;
+  //       const telephoneNumber = this.formatPhoneNumber(ctx.message.contact.phone_number);
+  //       const telegramId = Number(ctx.message.contact.user_id);
+  //       const chat = this.chatStorageService.getChatInfo(chatId);
+  //
+  //       if (!chat?.token) {
+  //         return ctx.reply(
+  //           'Пожалуйста, используйте QR - код или ссылку из приложения!',
+  //         );
+  //       }
+  //
+  //       const user = await this.usersService.findOneByTelephoneNumber(telephoneNumber)
+  //         .catch((err) => (err instanceof NotFoundException ? null : null));
+  //
+  //       // --- Очистка всех предыдущих сообщений бота ---
+  //       if (chat?.messages) {
+  //         for (const messageId of chat.messages) {
+  //           await ctx.deleteMessage(messageId).catch(() => {});
+  //         }
+  //       }
+  //       this.chatStorageService.clearChatById(chatId);
+  //
+  //       if (user) {
+  //         const authFlag = await this.authRequest(user, telegramId, chat.token, chat.clientId, ctx);
+  //         if (authFlag) {
+  //           const successMsg = await ctx.reply('Вход успешен!');
+  //           this.chatStorageService.addMessageId(chatId, successMsg.message_id);
+  //         }
+  //       } else {
+  //         const errorMsg = await ctx.reply(
+  //           'Похоже вы используете не тот номер, на который был зарегистрирован ваш аккаунт в академии. Пожалуйста, используйте номер, который был указан при регистрации.',
+  //         );
+  //         this.chatStorageService.addMessageId(chatId, errorMsg.message_id);
+  //       }
+  //
+  //     } catch (err) {
+  //       this.logger.error(err);
+  //     }
+  //   });
+  //
+  //   this.bot.launch();
+  // }
 
-    // --- Обработка /start ---
-    this.bot.start(async (ctx) => {
-      try {
-        if (!ctx.message.text.startsWith('/start')) {
-          return ctx.reply(
-            'Взаимодействие с ботом возможно только через ссылку на главном экране приложения!',
-          );
-        }
+    startBot() {
 
-        const chatId = ctx.update.message?.chat.id || '';
-        const match = ctx.message.text.match(/^\/start ([\w-]+)$/);
+        // --- Обработка /start ---
+        this.bot.start(async (ctx) => {
+            try {
+                if (!ctx.message.text.startsWith('/start')) {
+                    return ctx.reply(
+                        'Взаимодействие с ботом возможно только через ссылку на главном экране приложения!',
+                    );
+                }
 
-        if (!match) {
-          return ctx.reply(
-            'Команда /start не соответствует ожидаемому формату, пожалуйста, используйте QR - код или ссылку из приложения!',
-          );
-        }
+                const chatId = ctx.update.message?.chat.id || '';
+                const match = ctx.message.text.match(/^\/start ([\w-]+)$/);
 
-        const command = match[1].replace('/start', '');
-        const dashIndex = command.indexOf('-');
-        const token = command.slice(0, dashIndex);
-        const clientId = command.slice(dashIndex + 1);
+                if (!match) {
+                    return ctx.reply(
+                        'Команда /start не соответствует ожидаемому формату, пожалуйста, используйте QR - код или ссылку из приложения!',
+                    );
+                }
 
-        if (!token) {
-          return ctx.reply(
-            'Пожалуйста, используйте QR - код или ссылку из приложения!',
-          );
-        }
+                const command = match[1].replace('/start', '');
+                const dashIndex = command.indexOf('-');
+                const token = command.slice(0, dashIndex);
+                const clientId = command.slice(dashIndex + 1);
 
-        const telegramId = ctx.message.from.id;
-        const user = await this.usersService.findOneByTelegramId(telegramId);
+                if (!token) {
+                    return ctx.reply(
+                        'Пожалуйста, используйте QR - код или ссылку из приложения!',
+                    );
+                }
 
-        // --- Очистка всех предыдущих сообщений бота (новая сессия) ---
-        const chat = this.chatStorageService.getChatInfo(chatId);
-        if (chat?.messages) {
-          for (const messageId of chat.messages) {
-            await ctx.deleteMessage(messageId).catch(() => {});
-          }
-        }
-        this.chatStorageService.clearChatById(chatId);
+                const telegramId = ctx.message.from.id;
+                const user = await this.usersService.findOneByTelegramId(telegramId);
 
-        if (user) {
-          // --- Отправка новых сообщений бота ---
-          const welcomeMsg = await ctx.reply(
-            'Привет, я бот для регистрации в GoodManagement!',
-          );
-          this.chatStorageService.addMessageId(chatId, welcomeMsg.message_id);
+                // --- Очистка всех предыдущих сообщений бота (новая сессия) ---
+                const chat = this.chatStorageService.getChatInfo(chatId);
+                if (chat?.messages) {
+                    for (const messageId of chat.messages) {
+                        await ctx.deleteMessage(messageId).catch(() => {});
+                    }
+                }
+                this.chatStorageService.clearChatById(chatId);
 
-          const stickerMsg = await ctx.replyWithSticker(
-            'CAACAgIAAxkBAAEUfY9pNoYQWbFg-0DT-awSsE8EM1PofwACIYIAAhDFuEmHfIHDf-z_VTYE',
-          );
-          this.chatStorageService.addMessageId(chatId, stickerMsg.message_id);
+                if (user) {
+                    // --- Отправка новых сообщений бота ---
+                    const welcomeMsg = await ctx.reply(
+                        'Привет, я бот для регистрации в GoodManagement!',
+                    );
+                    this.chatStorageService.addMessageId(chatId, welcomeMsg.message_id);
 
-          const authFlag = await this.authRequest(user, telegramId, token, clientId, ctx);
-          if (authFlag) {
-            const successMsg = await ctx.reply('Вход успешен!');
-            this.chatStorageService.addMessageId(chatId, successMsg.message_id);
-          }
+                    const stickerMsg = await ctx.replyWithSticker(
+                        'CAACAgIAAxkBAAEUfY9pNoYQWbFg-0DT-awSsE8EM1PofwACIYIAAhDFuEmHfIHDf-z_VTYE',
+                    );
+                    this.chatStorageService.addMessageId(chatId, stickerMsg.message_id);
 
-        } else {
-          // --- Если пользователя нет, сохраняем токен и clientId и просим поделиться контактом ---
-          this.chatStorageService.setChatInfo(chatId, {
-            token,
-            clientId,
-            messages: [],
-          });
-          const promptMsg = await ctx.reply(
-            'Добро пожаловать в бота, чтобы войти поделитесь контактом, нажав на кнопку ниже:',
-            {
-              reply_markup: {
-                keyboard: [[{ text: 'Поделиться контактом', request_contact: true }]],
-                resize_keyboard: true,
-                one_time_keyboard: true,
-              },
-            },
-          );
-          this.chatStorageService.addMessageId(chatId, promptMsg.message_id);
-        }
+                    const authFlag = await this.authRequest(user, telegramId, token, clientId, ctx);
+                    if (authFlag) {
+                        const successMsg = await ctx.reply('Вход успешен!');
+                        this.chatStorageService.addMessageId(chatId, successMsg.message_id);
+                    }
 
-      } catch (err) {
-        this.logger.error(err);
-      }
-    });
+                } else {
+                    // --- Если пользователя нет, сохраняем токен и clientId и просим поделиться контактом ---
+                    this.chatStorageService.setChatInfo(chatId, {
+                        token,
+                        clientId,
+                        messages: [],
+                    });
+                    const promptMsg = await ctx.reply(
+                        'Добро пожаловать в бота, чтобы войти поделитесь контактом, нажав на кнопку ниже:',
+                        {
+                            reply_markup: {
+                                keyboard: [[{ text: 'Поделиться контактом', request_contact: true }]],
+                                resize_keyboard: true,
+                                one_time_keyboard: true,
+                            },
+                        },
+                    );
+                    this.chatStorageService.addMessageId(chatId, promptMsg.message_id);
+                }
 
-    // --- Обработка контакта ---
-    this.bot.on('contact', async (ctx) => {
-      try {
-        const chatId = ctx.update.message?.chat.id;
-        const telephoneNumber = this.formatPhoneNumber(ctx.message.contact.phone_number);
-        const telegramId = Number(ctx.message.contact.user_id);
-        const chat = this.chatStorageService.getChatInfo(chatId);
+            } catch (err) {
+                this.logger.error(err);
+            }
+        });
 
-        if (!chat?.token) {
-          return ctx.reply(
-            'Пожалуйста, используйте QR - код или ссылку из приложения!',
-          );
-        }
+        // --- Обработка контакта ---
+        this.bot.on('contact', async (ctx) => {
+            try {
+                const chatId = ctx.update.message?.chat.id;
+                const telephoneNumber = this.formatPhoneNumber(ctx.message.contact.phone_number);
+                const telegramId = Number(ctx.message.contact.user_id);
+                const chat = this.chatStorageService.getChatInfo(chatId);
 
-        const user = await this.usersService.findOneByTelephoneNumber(telephoneNumber)
-          .catch((err) => (err instanceof NotFoundException ? null : null));
+                if (!chat?.token) {
+                    return ctx.reply(
+                        'Пожалуйста, используйте QR - код или ссылку из приложения!',
+                    );
+                }
 
-        // --- Очистка всех предыдущих сообщений бота ---
-        if (chat?.messages) {
-          for (const messageId of chat.messages) {
-            await ctx.deleteMessage(messageId).catch(() => {});
-          }
-        }
-        this.chatStorageService.clearChatById(chatId);
+                const user = await this.usersService.findOneByTelephoneNumber(telephoneNumber)
+                    .catch((err) => (err instanceof NotFoundException ? null : null));
 
-        if (user) {
-          const authFlag = await this.authRequest(user, telegramId, chat.token, chat.clientId, ctx);
-          if (authFlag) {
-            const successMsg = await ctx.reply('Вход успешен!');
-            this.chatStorageService.addMessageId(chatId, successMsg.message_id);
-          }
-        } else {
-          const errorMsg = await ctx.reply(
-            'Похоже вы используете не тот номер, на который был зарегистрирован ваш аккаунт в академии. Пожалуйста, используйте номер, который был указан при регистрации.',
-          );
-          this.chatStorageService.addMessageId(chatId, errorMsg.message_id);
-        }
+                // --- Очистка всех предыдущих сообщений бота ---
+                if (chat?.messages) {
+                    for (const messageId of chat.messages) {
+                        await ctx.deleteMessage(messageId).catch(() => {});
+                    }
+                }
+                this.chatStorageService.clearChatById(chatId);
 
-      } catch (err) {
-        this.logger.error(err);
-      }
-    });
+                if (user) {
+                    const authFlag = await this.authRequest(user, telegramId, chat.token, chat.clientId, ctx);
+                    if (authFlag) {
+                        const successMsg = await ctx.reply('Вход успешен!');
+                        this.chatStorageService.addMessageId(chatId, successMsg.message_id);
+                    }
+                } else {
+                    const errorMsg = await ctx.reply(
+                        'Похоже вы используете не тот номер, на который был зарегистрирован ваш аккаунт в академии. Пожалуйста, используйте номер, который был указан при регистрации.',
+                    );
+                    this.chatStorageService.addMessageId(chatId, errorMsg.message_id);
+                }
 
-    this.bot.launch();
-  }
+            } catch (err) {
+                this.logger.error(err);
+            }
+        });
+
+        this.bot.launch().catch((err) => {
+            this.logger.error('Не удалось запустить Telegram-бота: ' + err.message);
+        });
+    }
 
   formatPhoneNumber(phoneNumber: string): string {
     if (!phoneNumber.startsWith('+')) {
